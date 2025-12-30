@@ -26,8 +26,8 @@ header {
   color: white;
   padding: 10px 14px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
 }
 
 header h1 {
@@ -35,7 +35,6 @@ header h1 {
   margin: 0;
 }
 
-/* HEADER BUTTON */
 header button {
   background: #dc2626;
   border: none;
@@ -44,7 +43,6 @@ header button {
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  font-size: 12px;
 }
 
 /* CONTROLS */
@@ -55,10 +53,6 @@ header button {
   gap: 10px;
   align-items: center;
   border-bottom: 1px solid #ddd;
-}
-
-.controls label {
-  font-size: 13px;
 }
 
 select, button {
@@ -124,35 +118,15 @@ select, button {
   padding: 10px;
   border-bottom: 1px solid #eee;
   cursor: pointer;
-  font-size: 14px;
 }
 
 .location-item:hover {
   background: #f3f4f6;
 }
 
-/* 🌧️ ANIMATION */
+/* ANIMATION */
 .leaflet-interactive {
   transition: fill 0.6s ease, stroke 0.6s ease, r 0.6s ease;
-}
-
-/* 📱 MOBILE OPTIMIZATION */
-@media (max-width: 600px) {
-
-  header h1 {
-    font-size: 14px;
-  }
-
-  .controls {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  #legend {
-    bottom: 10px;
-    right: 10px;
-    font-size: 11px;
-  }
 }
 </style>
 </head>
@@ -200,6 +174,7 @@ let geojsonLayer;
 let reportMode = false;
 let priorityLocations = [];
 
+/* DELHI BOUNDS */
 const delhiBounds = L.latLngBounds(
   [28.40, 76.80],
   [28.95, 77.40]
@@ -217,6 +192,7 @@ L.tileLayer(
   { attribution: "© OpenStreetMap © CARTO" }
 ).addTo(map);
 
+/* COLOR + SIZE */
 function getColor(risk) {
   if (rainLevel === "Heavy") return "#dc2626";
   if (rainLevel === "Moderate") {
@@ -233,6 +209,7 @@ function getRadius() {
          rainLevel === "Moderate" ? 8 : 7;
 }
 
+/* LOAD DATA */
 fetch("data.geojson")
   .then(res => res.json())
   .then(data => {
@@ -267,6 +244,7 @@ fetch("data.geojson")
     updateLegend();
   });
 
+/* RAIN CHANGE */
 function setRain(level) {
   rainLevel = level;
   geojsonLayer.setStyle(f => ({
@@ -287,10 +265,12 @@ function updateLegend() {
   document.querySelector(".high").style.background = "#dc2626";
 }
 
+/* CRITICAL LOCATION FOCUS */
 function focusOnLocation(index) {
   closeModal();
   const f = priorityLocations[index];
   const [lng, lat] = f.geometry.coordinates;
+
   map.setView([lat, lng], 15);
 
   L.circleMarker([lat, lng], {
@@ -304,6 +284,7 @@ function focusOnLocation(index) {
     .openPopup();
 }
 
+/* MODAL */
 function openModal() {
   document.getElementById("modal").style.display = "block";
 }
@@ -313,9 +294,49 @@ function closeModal(e) {
   document.getElementById("modal").style.display = "none";
 }
 
+/* REPORTING */
 function enableReportMode() {
   reportMode = true;
-  alert("Tap on map to report waterlogging");
+  alert("Tap on the map to report waterlogging");
+}
+
+map.on("click", e => {
+  if (!reportMode) return;
+
+  const html = `
+    <label>Severity</label>
+    <select id="sev">
+      <option>Low</option>
+      <option>Medium</option>
+      <option>High</option>
+    </select><br><br>
+    <button onclick="submitReport(${e.latlng.lat}, ${e.latlng.lng})">
+      Submit
+    </button>
+  `;
+
+  L.popup()
+    .setLatLng(e.latlng)
+    .setContent(html)
+    .openOn(map);
+
+  reportMode = false;
+});
+
+/* SUBMIT REPORT — FIXED */
+function submitReport(lat, lng) {
+  const sev = document.getElementById("sev").value;
+
+  L.circleMarker([lat, lng], {
+    radius: getRadius(),
+    fillColor: getColor(sev),
+    fillOpacity: 0.9,
+    color: "#000",
+    weight: 1
+  }).addTo(map)
+    .bindPopup(`🧑 Citizen Report<br><b>${sev} Risk</b>`);
+
+  map.closePopup();
 }
 </script>
 
