@@ -15,6 +15,7 @@
   padding: 0;
 }
 
+
 body {
   font-family: 'Inter', sans-serif;
   height: 100vh;
@@ -770,6 +771,81 @@ select:focus {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+/* ===============================
+   LOW RISK (YELLOW)
+   =============================== */
+.pulse-low {
+  width: 16px;
+  height: 16px;
+  background: #fde68a;
+  border-radius: 50%;
+  position: relative;
+}
+
+.pulse-low::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(253, 230, 138, 0.6);
+  animation: pulse-low 1.8s infinite ease-out;
+}
+
+@keyframes pulse-low {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* ===============================
+   MEDIUM RISK (ORANGE)
+   =============================== */
+.pulse-medium {
+  width: 16px;
+  height: 16px;
+  background: #f97316;
+  border-radius: 50%;
+  position: relative;
+}
+
+.pulse-medium::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.6);
+  animation: pulse-medium 1.5s infinite ease-out;
+}
+
+@keyframes pulse-medium {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* ===============================
+   HIGH RISK (RED)
+   =============================== */
+.pulse-high {
+  width: 16px;
+  height: 16px;
+  background: #dc2626;
+  border-radius: 50%;
+  position: relative;
+}
+
+.pulse-high::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.6);
+  animation: pulse-high 1.2s infinite ease-out;
+}
+
+@keyframes pulse-high {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
 </style>
 </head>
 <body>
@@ -927,6 +1003,36 @@ let currentReportLocation = null;
 let currentReportImage = null;
 let currentReportLatLng = null;
 let currentReportImageBase64 = null;
+const REPORT_EXPIRY_MINUTES = 60;
+let reportMarkers = [];
+function minutesSince(ts) {
+  return (Date.now() - ts) / (1000 * 60);
+}
+function addPulsatingReportMarker(report) {
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="pulse-marker"></div>`,
+    iconSize: [16, 16]
+  });
+
+  const marker = L.marker([report.lat, report.lng], { icon }).addTo(map);
+
+  reportMarkers.push({
+    marker,
+    createdAt: report.createdAt
+  });
+
+  // Handle already-expired reports (page reload case)
+  setTimeout(() => {
+    const el = marker.getElement();
+    if (!el) return;
+
+    if (minutesSince(report.createdAt) >= REPORT_EXPIRY_MINUTES) {
+      el.classList.add('fade-out');
+      setTimeout(() => map.removeLayer(marker), 2000);
+    }
+  }, 100);
+}
 
 const delhiBounds = L.latLngBounds(
   [28.40, 76.80],
@@ -1192,52 +1298,114 @@ fetch("data.geojson")
 
     updateLegend();
   });
-
 function loadApprovedReports() {
   const approvedLocations = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
-  
+
+  // ✅ RESET STATS
+  stats = { high: 0, medium: 0, low: 0 };
+
   approvedLocations.forEach(report => {
+
+    // ✅ NORMALIZE createdAt
+    report.createdAt =
+      report.createdAt ||
+      new Date(report.timestamp).getTime() ||
+      Date.now();
+
     const severityMap = {
-      'low': { color: '#fde68a', label: 'Low', icon: '⚠️' },
-      'medium': { color: '#f97316', label: 'Medium', icon: '🟠' },
-      'high': { color: '#dc2626', label: 'High', icon: '🔴' }
+      low: { color: '#fde68a', label: 'Low', icon: '⚠️' },
+      medium: { color: '#f97316', label: 'Medium', icon: '🟠' },
+      high: { color: '#dc2626', label: 'High', icon: '🔴' }
     };
-    
-    const severity = severityMap[report.severity.toLowerCase()] || severityMap['medium'];
-    
-    // Add marker for approved report with severity-based styling
-    L.circleMarker([report.lat, report.lng], {
-      radius: getRadius(),
-      fillColor: severity.color,
-      fillOpacity: 0.85,
-      color: "#ffffff",
-      weight: 2
-    }).addTo(map)
-      .bindPopup(
-        `<div style="font-family: Inter, sans-serif; padding: 10px;">
-          <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">${severity.icon} ${report.location}</h4>
-          <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px; font-weight: 600;">
-            <span style="color: ${severity.color}; font-weight: 800;">${severity.label}</span> Risk Area
-          </p>
-          <p style="margin: 0 0 4px 0; color: #10b981; font-size: 12px; font-weight: 600;">✓ Verified Report</p>
-          <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px;">ID: ${report.id}</p>
-          <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 10px;">${report.timestamp}</p>
-        </div>`,
-        { className: 'custom-popup' }
-      );
-    
-    // Update stats to include approved reports
-    const severityLower = report.severity.toLowerCase();
+
+    const severity =
+      severityMap[report.severity?.toLowerCase()] || severityMap.medium;
+
+    const ageMinutes = minutesSince(report.createdAt);
+
+    let marker;
+
+    /* ===============================
+       RECENT REPORT (< 60 MIN)
+       =============================== */
+    if (ageMinutes < REPORT_EXPIRY_MINUTES) {
+
+      const pulseClass =
+        report.severity === 'high' ? 'pulse-high' :
+        report.severity === 'medium' ? 'pulse-medium' :
+        'pulse-low';
+
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="${pulseClass}"></div>`,
+        iconSize: [16, 16]
+      });
+
+      marker = L.marker([report.lat, report.lng], { icon }).addTo(map);
+
+      reportMarkers.push({
+        marker,
+        createdAt: report.createdAt
+      });
+    }
+
+    /* ===============================
+       OLD REPORT (STATIC)
+       =============================== */
+    else {
+      marker = L.circleMarker([report.lat, report.lng], {
+        radius: getRadius(),
+        fillColor: severity.color,
+        fillOpacity: 0.85,
+        color: "#ffffff",
+        weight: 2
+      }).addTo(map);
+    }
+
+    /* ===============================
+       POPUP (UNCHANGED)
+       =============================== */
+    marker.bindPopup(
+      `<div style="font-family: Inter, sans-serif; padding: 10px;">
+        <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">
+          ${severity.icon} ${report.location}
+        </h4>
+        <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px; font-weight: 600;">
+          <span style="color: ${severity.color}; font-weight: 800;">
+            ${severity.label}
+          </span> Risk Area
+        </p>
+        <p style="margin: 0 0 4px 0; color: #10b981; font-size: 12px; font-weight: 600;">
+          ✓ Verified Report
+        </p>
+        <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px;">
+          ID: ${report.id}
+        </p>
+        <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 10px;">
+          ${report.timestamp}
+        </p>
+      </div>`,
+      { className: 'custom-popup' }
+    );
+
+    /* ===============================
+       STATS UPDATE
+       =============================== */
+    const severityLower = report.severity?.toLowerCase();
     if (stats[severityLower] !== undefined) {
       stats[severityLower]++;
     }
   });
-  
-  // Update stats display with approved reports included
+
+  /* ===============================
+     UPDATE STATS DISPLAY
+     =============================== */
   document.getElementById('highCount').textContent = stats.high;
   document.getElementById('mediumCount').textContent = stats.medium;
   document.getElementById('lowCount').textContent = stats.low;
 }
+
+
 
 function setRain(level) {
   rainLevel = level;
@@ -1623,6 +1791,20 @@ style.textContent = `
     }
   }
 `;
+setInterval(() => {
+  reportMarkers = reportMarkers.filter(r => {
+    if (minutesSince(r.createdAt) >= REPORT_EXPIRY_MINUTES) {
+      const el = r.marker.getElement();
+      if (el && !el.classList.contains('fade-out')) {
+        el.classList.add('fade-out');
+        setTimeout(() => map.removeLayer(r.marker), 2000);
+      }
+      return false;
+    }
+    return true;
+  });
+}, 60 * 1000);
+
 document.head.appendChild(style);
 
 </script>
