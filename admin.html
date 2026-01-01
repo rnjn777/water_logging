@@ -706,6 +706,90 @@ body {
   font-weight: 600;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
+.proof-thumb {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid rgba(59,130,246,0.4);
+  transition: transform 0.2s ease;
+}
+
+.proof-thumb:hover {
+  transform: scale(1.15);
+}
+
+.no-proof {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* IMAGE MODAL */
+.image-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.85);
+  backdrop-filter: blur(10px);
+  z-index: 5000;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-modal-content {
+  max-width: 80%;
+  max-height: 80%;
+}
+
+.image-modal-content img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 16px;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+}
+.view-report-content {
+  background: #0f172a;
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 520px;
+  width: 90%;
+  color: white;
+  box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+}
+
+.view-row {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+#viewImageContainer img {
+  margin-top: 10px;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.no-proof {
+  color: #94a3b8;
+  font-size: 13px;
+}
+.view-report-content {
+  background: #0f172a;
+  color: white;
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 520px;
+  width: 90%;
+}
+
+#viewImageContainer img {
+  margin-top: 12px;
+  max-width: 100%;
+  border-radius: 12px;
+}
+
+
 </style>
 </head>
 
@@ -818,6 +902,7 @@ body {
             <th>Severity</th>
             <th>Status</th>
             <th>Reported At</th>
+            <th>Proof</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -859,10 +944,11 @@ body {
 
 <script>
 // Reports array - loaded from localStorage
-let reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
+let reports = JSON.parse(localStorage.getItem('waterloggingReports')) || [];
+let filteredReports = [...reports];
 
 let selectedReports = new Set();
-let filteredReports = [...reports];
+
 let previewMap = null;
 
 function updateStats() {
@@ -879,74 +965,119 @@ function updateStats() {
 function renderReports() {
   const tbody = document.getElementById('reportsTableBody');
   const noResults = document.getElementById('noResults');
-  
-  if (filteredReports.length === 0) {
+
+  if (!filteredReports.length) {
     tbody.innerHTML = '';
     noResults.style.display = 'block';
     return;
   }
-  
+
   noResults.style.display = 'none';
-  
-  tbody.innerHTML = filteredReports.map(report => `
-    <tr class="${selectedReports.has(report.id) ? 'selected' : ''}" onclick="toggleRowSelection('${report.id}', event)">
-      <td class="checkbox-cell">
-        <input 
-          type="checkbox" 
-          class="custom-checkbox report-checkbox" 
-          ${selectedReports.has(report.id) ? 'checked' : ''}
-          onchange="toggleReportSelection('${report.id}')"
-          onclick="event.stopPropagation()"
-        />
-      </td>
-      <td class="report-id">${report.id}</td>
-      <td class="location-text" title="${report.location}">${report.location}</td>
-      <td>${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}</td>
-      <td>
-        <span class="severity-badge severity-${report.severity}">
-          ${report.severity}
-        </span>
-        ${report.hasImage ? '<br><span style="color: #10b981; font-size: 11px; font-weight: 600; margin-top: 4px; display: inline-block;">📷 Photo</span>' : ''}
-        ${report.reportedVia === 'gps' ? '<br><span style="color: #3b82f6; font-size: 11px; font-weight: 600; margin-top: 4px; display: inline-block;">📍 GPS</span>' : ''}
-      </td>
-      <td>
-        <span class="status-badge status-${report.status}">
-          ${report.status}
-        </span>
-      </td>
-      <td class="timestamp">${report.timestamp}</td>
-      <td>
-        <div class="action-buttons">
-          ${report.status === 'pending' ? `
-            <button class="action-btn approve-btn" onclick="approveReport('${report.id}', event)" title="Approve">✓</button>
-            <button class="action-btn reject-btn" onclick="rejectReport('${report.id}', event)" title="Reject">✗</button>
-          ` : ''}
-          ${report.hasImage ? `<button class="action-btn" style="background: #10b981;" onclick="viewImage('${report.id}', event)" title="View Photo">📷</button>` : ''}
-          <button class="action-btn map-btn" onclick="showMapPreview('${report.id}', event)" title="View on Map">📍</button>
-          <button class="action-btn view-btn" onclick="viewReport('${report.id}', event)" title="View Details">👁</button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+
+  tbody.innerHTML = filteredReports.map(report => {
+    const locationText = report.location || report.locationName || '—';
+
+    const coordsText =
+      typeof report.lat === 'number' && typeof report.lng === 'number'
+        ? `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}`
+        : '—';
+
+    return `
+      <tr onclick="toggleRowSelection('${report.id}', event)">
+        <td class="checkbox-cell">
+          <input type="checkbox"
+                 class="custom-checkbox"
+                 ${selectedReports.has(report.id) ? 'checked' : ''}
+                 onclick="event.stopPropagation()"
+                 onchange="toggleReportSelection('${report.id}')">
+        </td>
+
+        <td class="report-id">${report.id}</td>
+
+        <td class="location-text">${locationText}</td>
+
+        <td>${coordsText}</td>
+
+        <td>
+          <span class="severity-badge severity-${report.severity}">
+            ${report.severity}
+          </span>
+        </td>
+
+        <td>
+          <span class="status-badge status-${report.status}">
+            ${report.status}
+          </span>
+        </td>
+
+        <td class="timestamp">${report.timestamp || '—'}</td>
+
+        <td>
+  ${report.image ? `
+    <img 
+      src="${report.image}"
+      class="proof-thumb"
+      onclick="viewImage('${report.id}', event)"
+      title="Click to view image"
+    />
+  ` : '<span class="no-proof">—</span>'}
+</td>
+
+
+        <td>
+          <div class="action-buttons">
+            ${report.status === 'pending' ? `
+              <button class="action-btn approve-btn"
+                      onclick="approveReport('${report.id}', event)">✓</button>
+              <button class="action-btn reject-btn"
+                      onclick="rejectReport('${report.id}', event)">✗</button>
+            ` : ''}
+            <button class="action-btn map-btn"
+                    onclick="showMapPreview('${report.id}', event)">📍</button>
+            <button class="action-btn view-btn"
+                    onclick="viewReport('${report.id}', event)">👁</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
+
 function filterReports() {
-  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-  const statusFilter = document.getElementById('statusFilter').value;
-  const severityFilter = document.getElementById('severityFilter').value;
-  
+  const searchTerm =
+    document.getElementById('searchInput').value.toLowerCase();
+
+  const statusFilter =
+    document.getElementById('statusFilter').value;
+
+  const severityFilter =
+    document.getElementById('severityFilter').value;
+
   filteredReports = reports.filter(report => {
-    const matchesSearch = 
-      report.location.toLowerCase().includes(searchTerm) ||
+
+    const locationText =
+      (report.location || report.locationName || '').toLowerCase();
+
+    const coordsText =
+      typeof report.lat === 'number' && typeof report.lng === 'number'
+        ? `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}`
+        : '';
+
+    const matchesSearch =
+      locationText.includes(searchTerm) ||
       report.id.toLowerCase().includes(searchTerm) ||
-      `${report.lat.toFixed(4)}, ${report.lng.toFixed(4)}`.includes(searchTerm);
-    
-    const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
-    const matchesSeverity = severityFilter === 'all' || report.severity === severityFilter;
-    
+      coordsText.includes(searchTerm);
+
+    const matchesStatus =
+      statusFilter === 'all' || report.status === statusFilter;
+
+    const matchesSeverity =
+      severityFilter === 'all' || report.severity === severityFilter;
+
     return matchesSearch && matchesStatus && matchesSeverity;
   });
-  
+
   renderReports();
 }
 
@@ -982,7 +1113,7 @@ function toggleRowSelection(reportId, event) {
 }
 
 function approveReport(reportId, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   const report = reports.find(r => r.id === reportId);
   if (report) {
     report.status = 'approved';
@@ -1005,7 +1136,7 @@ function addToGeoJSON(report) {
   console.log('Adding to GeoJSON:', {
     type: 'Feature',
     properties: {
-      Location_Road: report.location,
+      Location_Road: report.location || report.locationName || 'Unknown',
       Risk: report.severity.charAt(0).toUpperCase() + report.severity.slice(1)
     },
     geometry: {
@@ -1018,7 +1149,7 @@ function addToGeoJSON(report) {
   let approvedLocations = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
   approvedLocations.push({
     id: report.id,
-    location: report.location,
+    location: report.location || report.locationName || 'Unknown',
     lat: report.lat,
     lng: report.lng,
     severity: report.severity,
@@ -1028,7 +1159,7 @@ function addToGeoJSON(report) {
 }
 
 function rejectReport(reportId, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   const report = reports.find(r => r.id === reportId);
   if (report) {
     report.status = 'rejected';
@@ -1043,45 +1174,51 @@ function rejectReport(reportId, event) {
 }
 
 function viewReport(reportId, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
+
+
   const report = reports.find(r => r.id === reportId);
-  if (report) {
-    const severityIcon = {
-      'low': '⚠️',
-      'medium': '🟠', 
-      'high': '🔴'
-    }[report.severity] || '⚠️';
-    
-    const photoStatus = report.hasImage ? '📷 Photo Attached' : 'No Photo';
-    const locationMethod = report.reportedVia === 'gps' ? '📍 GPS Location' : '🗺️ Manual Selection';
-    
-    alert(`📍 Report Details\n\nID: ${report.id}\nLocation: ${report.location}\nCoordinates: ${report.lat}, ${report.lng}\nSeverity: ${severityIcon} ${report.severity.toUpperCase()}\nStatus: ${report.status.toUpperCase()}\nReported Via: ${locationMethod}\nProof: ${photoStatus}\nTime: ${report.timestamp}`);
+  if (!report) return;
+
+  document.getElementById('viewLocation').textContent =
+  report.location || report.locationName || '—';
+
+  document.getElementById('viewCoords').textContent =
+    `${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}`;
+  document.getElementById('viewSeverity').textContent = report.severity || '—';
+  document.getElementById('viewTime').textContent = report.timestamp || '—';
+
+  const container = document.getElementById('viewImageContainer');
+  container.innerHTML = '';
+
+  if (report.image && report.image.startsWith('data:image')) {
+    const img = document.createElement('img');
+    img.src = report.image;
+    container.appendChild(img);
+  } else {
+    container.innerHTML = '<span class="no-proof">No image uploaded</span>';
   }
+
+  document.getElementById('viewReportModal').style.display = 'flex';
 }
+
+function closeViewReportModal() {
+  document.getElementById('viewReportModal').style.display = 'none';
+}
+
 
 function viewImage(reportId, event) {
   event.stopPropagation();
   const report = reports.find(r => r.id === reportId);
-  if (report && report.imageData) {
-    const modal = document.getElementById('imageModal');
-    const img = document.getElementById('modalImage');
-    const info = document.getElementById('imageInfo');
-    
-    img.src = report.imageData;
-    info.textContent = `📷 ${report.location} - ${report.id}`;
-    modal.classList.add('show');
-  } else {
-    alert('No image available for this report.');
-  }
+  if (!report || !report.image) return;
+
+  document.getElementById('modalImage').src = report.image;
+  document.getElementById('imageModal').style.display = 'flex';
 }
 
-function closeImageModal() {
-  const modal = document.getElementById('imageModal');
-  modal.classList.remove('show');
-}
 
 function showMapPreview(reportId, event) {
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   const report = reports.find(r => r.id === reportId);
   if (!report) return;
   
@@ -1132,7 +1269,7 @@ function showMapPreview(reportId, event) {
   }).addTo(previewMap)
     .bindPopup(
       `<div style="font-family: Inter, sans-serif; padding: 12px;">
-        <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">${severityIcons[report.severity]} ${report.location}</h4>
+        <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">${severityIcons[report.severity]} ${report.location || report.locationName || '—'}</h4>
         <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px;"><b>ID:</b> ${report.id}</p>
         <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px;"><b>Severity:</b> ${report.severity.toUpperCase()}</p>
         <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px;"><b>Status:</b> ${report.status.toUpperCase()}</p>
@@ -1211,10 +1348,63 @@ function logout() {
   }
 }
 
+
+function closeImageModal() {
+  document.getElementById('imageModal').style.display = 'none';
+}
+
+
+function closeViewReportModal() {
+  document.getElementById('viewReportModal').style.display = 'none';
+}
+
+
 // Initialize
 updateStats();
 renderReports();
+
+
 </script>
 
+<!-- VIEW REPORT MODAL -->
+<div id="viewReportModal" class="image-modal" onclick="closeViewReportModal()">
+  <div class="view-report-content" onclick="event.stopPropagation()">
+
+    <h3 style="margin-bottom: 16px;">📄 Report Details</h3>
+
+    <div class="view-row">
+      <strong>Location:</strong>
+      <span id="viewLocation">—</span>
+    </div>
+
+    <div class="view-row">
+      <strong>Coordinates:</strong>
+      <span id="viewCoords">—</span>
+    </div>
+
+    <div class="view-row">
+      <strong>Severity:</strong>
+      <span id="viewSeverity">—</span>
+    </div>
+
+    <div class="view-row">
+      <strong>Reported At:</strong>
+      <span id="viewTime">—</span>
+    </div>
+
+    <div class="view-row">
+      <strong>Photo Proof:</strong>
+      <div id="viewImageContainer">
+        <span class="no-proof">No image uploaded</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+
 </body>
+
 </html>

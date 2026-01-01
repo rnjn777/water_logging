@@ -899,6 +899,8 @@ let priorityLocations = [];
 let stats = { high: 0, medium: 0, low: 0 };
 let currentReportLocation = null;
 let currentReportImage = null;
+let currentReportLatLng = null;
+let currentReportImageBase64 = null;
 
 const delhiBounds = L.latLngBounds(
   [28.40, 76.80],
@@ -940,6 +942,75 @@ function getRadius() {
   return rainLevel === "Heavy" ? 10 :
          rainLevel === "Moderate" ? 9 : 8;
 }
+
+function enableReportMode() {
+  map.getContainer().style.cursor = 'crosshair';
+
+  map.once('click', function (e) {
+    map.getContainer().style.cursor = '';
+    openReportModal(e.latlng.lat, e.latlng.lng, false);
+  });
+}
+
+function reportCurrentLocation() {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      map.setView([lat, lng], 16);
+      openReportModal(lat, lng, true);
+    },
+    () => {
+      openReportModal(28.6139, 77.2090, true);
+    },
+    { enableHighAccuracy: true }
+  );
+}
+
+function openReportModal(lat, lng, isGPS) {
+  currentReportLatLng = { lat, lng };
+
+  document.getElementById('reportLocationCoords').textContent =
+    `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+
+  document.getElementById('reportModal').style.display = 'block';
+}
+
+function closeReportModal() {
+  document.getElementById('reportModal').style.display = 'none';
+  currentReportLatLng = null;
+  removeImage();
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    currentReportImageBase64 = reader.result;
+
+    document.getElementById('previewImg').src = reader.result;
+    document.getElementById('uploadPrompt').style.display = 'none';
+    document.getElementById('imagePreview').style.display = 'block';
+    document.getElementById('photoUploadArea').classList.add('has-image');
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function removeImage(e) {
+  if (e) e.stopPropagation();
+  currentReportImageBase64 = null;
+  document.getElementById('photoInput').value = '';
+  document.getElementById('uploadPrompt').style.display = 'block';
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('photoUploadArea').classList.remove('has-image');
+}
+
 
 function updateStats(data) {
   stats = { high: 0, medium: 0, low: 0 };
@@ -1062,6 +1133,44 @@ function updateLegend() {
   document.querySelector(".high").style.background = "#dc2626";
 }
 
+function submitReport() {
+  if (!currentReportLatLng) return;
+
+  const locationName = document.getElementById('reportLocationName').value.trim();
+  const description = document.getElementById('reportDescription').value.trim();
+  const severity = document.getElementById('severitySelect').value.toLowerCase();
+
+  if (!locationName) return;
+
+  const report = {
+    id: 'WL-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-6),
+    location: locationName,
+    description,
+    lat: +currentReportLatLng.lat.toFixed(6),
+    lng: +currentReportLatLng.lng.toFixed(6),
+    severity,
+    status: 'pending',
+    image: currentReportImageBase64,
+    timestamp: new Date().toLocaleString('en-IN')
+  };
+
+  const reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
+  reports.push(report);
+  localStorage.setItem('waterloggingReports', JSON.stringify(reports));
+
+  L.circleMarker([report.lat, report.lng], {
+    radius: 10,
+    fillColor: '#94a3b8',
+    fillOpacity: 0.6,
+    color: '#ffffff',
+    weight: 3,
+    dashArray: '5,5'
+  }).addTo(map);
+
+  closeReportModal();
+}
+
+
 function focusOnLocation(index) {
   closeModal();
   const f = priorityLocations[index];
@@ -1097,29 +1206,6 @@ function closeModal(e) {
   document.getElementById("modal").style.display = "none";
 }
 
-function enableReportMode() {
-  reportMode = true;
-  map.getContainer().style.cursor = 'crosshair';
-  
-  const severitySelect = document.getElementById('severitySelect');
-  const severityLevel = severitySelect.value;
-  
-  const severityMap = {
-    'Low': { label: 'Low', color: '#fde68a', icon: '⚠️' },
-    'Medium': { label: 'Medium', color: '#f97316', icon: '🟠' },
-    'High': { label: 'High', color: '#dc2626', icon: '🔴' }
-  };
-  
-  const severity = severityMap[severityLevel];
-  
-  alert(`🎯 Report Mode Active!\n\nSeverity: ${severity.icon} ${severity.label}\nClick anywhere on the map to report waterlogging.`);
-  
-  map.once('click', function(e) {
-    map.getContainer().style.cursor = '';
-    reportMode = false;
-    submitReportAtLocation(e.latlng.lat, e.latlng.lng, false);
-  });
-}
 
 function checkDuplicateReport(lat, lng) {
   // Check existing GeoJSON features
@@ -1158,168 +1244,6 @@ function checkDuplicateReport(lat, lng) {
   return hasDuplicate;
 }
 
-function reportCurrentLocation() {
-  if (!navigator.geolocation) {
-    alert('❌ Geolocation is not supported by your browser.\n\nPlease use the "Report Waterlogging" button to manually select a location on the map.');
-    return;
-  }
-  
-  // Show loading indicator
-  alert('📍 Getting your location...\n\nPlease allow location access when prompted.');
-  
-  navigator.geolocation.getCurrentPosition(
-    function(position) {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
-      
-      // Calculate distance from Delhi center (28.6139, 77.2090)
-      const delhiCenter = L.latLng(28.6139, 77.2090);
-      const userLocation = L.latLng(lat, lng);
-      const distanceFromCenter = delhiCenter.distanceTo(userLocation) / 1000; // in kilometers
-      
-      // Check if location is within 50km radius of Delhi center
-      if (distanceFromCenter > 50) {
-        alert(`❌ Location Out of Service Area\n\nYour location is approximately ${Math.round(distanceFromCenter)} km away from Delhi NCR center.\n\nThis system currently only monitors locations within 50 km of Delhi NCR.\n\nDistance from Delhi: ${Math.round(distanceFromCenter)} km\nMaximum allowed: 50 km\n\nPlease use this system when you're in Delhi NCR area.`);
-        return;
-      }
-      
-      // Additional check: strict bounds validation
-      if (lat < 28.40 || lat > 28.95 || lng < 76.80 || lng > 77.40) {
-        alert(`⚠️ Location Near Boundary\n\nYour location is ${Math.round(distanceFromCenter)} km from Delhi center, which is near the monitoring boundary.\n\nYou can still report, but please ensure you're within Delhi NCR region.`);
-      }
-      
-      // Zoom to user location
-      map.setView([lat, lng], 16);
-      
-      // Add temporary marker showing user location
-      const userMarker = L.circleMarker([lat, lng], {
-        radius: 10,
-        fillColor: '#3b82f6',
-        fillOpacity: 0.7,
-        color: '#ffffff',
-        weight: 3
-      }).addTo(map);
-      
-      userMarker.bindPopup(
-        `<div style="font-family: Inter, sans-serif; padding: 10px; text-align: center;">
-          <h4 style="margin: 0 0 8px 0; color: #3b82f6; font-size: 16px; font-weight: 700;">📍 Your Location</h4>
-          <p style="margin: 0 0 4px 0; color: #64748b; font-size: 12px;">Accuracy: ±${Math.round(accuracy)}m</p>
-          <p style="margin: 0; color: #10b981; font-size: 11px;">Distance from Delhi: ${Math.round(distanceFromCenter)} km</p>
-        </div>`
-      ).openPopup();
-      
-      // Ask if user wants to report this location
-      setTimeout(() => {
-        const confirmReport = confirm(`✅ Location Found!\n\nAccuracy: ±${Math.round(accuracy)} meters\nDistance from Delhi center: ${Math.round(distanceFromCenter)} km\nCoordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\nDo you want to report waterlogging at your current location?`);
-        
-        if (confirmReport) {
-          submitReportAtLocation(lat, lng, true);
-        } else {
-          map.removeLayer(userMarker);
-        }
-      }, 500);
-    },
-    function(error) {
-      let errorMsg = '';
-      switch(error.code) {
-        case error.PERMISSION_DENIED:
-          errorMsg = '❌ Location Access Denied\n\nYou denied the location permission request. Please use the "Report Waterlogging" button to manually select a location on the map.';
-          break;
-        case error.POSITION_UNAVAILABLE:
-          errorMsg = '❌ Location Unavailable\n\nYour location information is unavailable. Please try again or use manual reporting.';
-          break;
-        case error.TIMEOUT:
-          errorMsg = '❌ Request Timeout\n\nThe request to get your location timed out. Please try again.';
-          break;
-        default:
-          errorMsg = '❌ Unknown Error\n\nAn unknown error occurred. Please use manual reporting.';
-      }
-      alert(errorMsg);
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    }
-  );
-}
-
-function submitReportAtLocation(lat, lng, isCurrentLocation = false) {
-  const severitySelect = document.getElementById('severitySelect');
-  const severityLevel = severitySelect.value;
-  
-  const severityMap = {
-    'Low': { label: 'Low', color: '#fde68a', icon: '⚠️' },
-    'Medium': { label: 'Medium', color: '#f97316', icon: '🟠' },
-    'High': { label: 'High', color: '#dc2626', icon: '🔴' }
-  };
-  
-  const severity = severityMap[severityLevel];
-  
-  const locationName = prompt(`${isCurrentLocation ? '📍 Reporting at Your Location' : '📍 Reporting Location'}\n\nEnter location name or nearby landmark:`);
-  
-  if (!locationName || locationName.trim() === '') {
-    alert('❌ Location name is required. Report cancelled.');
-    return;
-  }
-  
-  // Check for duplicate reports (within 100m radius)
-  const isDuplicate = checkDuplicateReport(lat, lng);
-  if (isDuplicate) {
-    const confirm = window.confirm('⚠️ There is already a report within 100 meters of this location.\n\nDo you still want to submit this report?');
-    if (!confirm) {
-      return;
-    }
-  }
-  
-  // Create report object
-  const report = {
-    id: 'WL-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-6),
-    location: locationName.trim(),
-    lat: parseFloat(lat.toFixed(6)),
-    lng: parseFloat(lng.toFixed(6)),
-    severity: severity.label.toLowerCase(),
-    status: 'pending',
-    timestamp: new Date().toLocaleString('en-IN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }),
-    reportedVia: isCurrentLocation ? 'gps' : 'manual'
-  };
-  
-  // Store report in localStorage for admin to review
-  let reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
-  reports.push(report);
-  localStorage.setItem('waterloggingReports', JSON.stringify(reports));
-  
-  // Show success message
-  alert(`✅ Report Submitted Successfully!\n\nReport ID: ${report.id}\nLocation: ${locationName}\nSeverity: ${severity.icon} ${severity.label}\n${isCurrentLocation ? '📍 Reported via GPS\n' : ''}\nYour report has been sent to admin for review.`);
-  
-  // Add temporary marker with severity-based styling
-  const tempMarker = L.circleMarker([lat, lng], {
-    radius: 10,
-    fillColor: '#94a3b8',
-    fillOpacity: 0.6,
-    color: severity.color,
-    weight: 3,
-    dashArray: '5, 5'
-  }).addTo(map);
-  
-  tempMarker.bindPopup(
-    `<div style="font-family: Inter, sans-serif; padding: 12px;">
-      <h4 style="margin: 0 0 8px 0; color: #64748b; font-size: 16px; font-weight: 700;">⏳ Pending Review</h4>
-      <p style="margin: 0 0 4px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${locationName}</p>
-      <p style="margin: 0 0 4px 0; color: #64748b; font-size: 13px;">Severity: ${severity.icon} ${severity.label}</p>
-      ${isCurrentLocation ? `<p style="margin: 0 0 4px 0; color: #3b82f6; font-size: 12px; font-weight: 600;">📍 GPS Location</p>` : ''}
-      <p style="margin: 0; color: #f59e0b; font-weight: 600; font-size: 13px;">📋 Awaiting admin approval</p>
-    </div>`
-  ).openPopup();
-}
 
 // Custom popup styling
 const style = document.createElement('style');
