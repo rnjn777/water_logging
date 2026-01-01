@@ -719,6 +719,28 @@ select:focus {
   font-weight: 700;
   margin-right: 12px;
 }
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.home-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+  transition: all 0.2s ease;
+}
+
+.home-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.55);
+}
 
 /* ANIMATIONS */
 .leaflet-interactive {
@@ -750,7 +772,6 @@ select:focus {
 }
 </style>
 </head>
-
 <body>
 
 <header>
@@ -761,8 +782,13 @@ select:focus {
       <div class="header-subtitle">Real-time flood monitoring & analysis system</div>
     </div>
   </div>
-  <button class="critical-btn" onclick="openModal()">⚠️ Critical Areas</button>
+
+  <div class="header-actions">
+    <button class="home-btn" onclick="goHome()">🏠 Home</button>
+    <button class="critical-btn" onclick="openModal()">⚠️ Critical Areas</button>
+  </div>
 </header>
+
 
 <div class="controls">
   <div class="control-group">
@@ -983,6 +1009,10 @@ function closeReportModal() {
   document.getElementById('reportModal').style.display = 'none';
   currentReportLatLng = null;
   removeImage();
+}
+
+function goHome() {
+  window.location.href = "home.html";
 }
 
 function handleImageUpload(event) {
@@ -1258,6 +1288,8 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+window.location.replace("home.html");
+
 </script>
 
 </body>

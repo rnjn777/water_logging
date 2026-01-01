@@ -300,11 +300,22 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
+.no-results {
+  height: 300px;              /* 👈 ADD */
+  display: flex;              /* 👈 ADD */
+  flex-direction: column;     /* 👈 ADD */
+  align-items: center;        /* 👈 ADD */
+  justify-content: center;    /* 👈 ADD */
+  text-align: center;
+  color: #64748b;
+}
 
 .table-container {
   overflow-x: auto;
   max-height: 600px;
+  min-height: 400px; /* 👈 ADD THIS */
   overflow-y: auto;
+  transition: all 0.2s ease;
 }
 
 .reports-table {
@@ -612,6 +623,15 @@ body {
   justify-content: center;
   transition: all 0.3s ease;
 }
+.reports-table {
+  width: 100%;
+  min-width: 100%;
+  table-layout: fixed; /* 👈 VERY IMPORTANT */
+}
+.reports-section {
+  width: 100%;
+  min-width: 100%;
+}
 
 .map-close-btn:hover {
   background: rgba(255, 255, 255, 0.3);
@@ -706,6 +726,27 @@ body {
   font-weight: 600;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
+.pending-only-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+  transition: all 0.2s ease;
+}
+
+.pending-only-btn.active {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.pending-only-btn:hover {
+  transform: translateY(-2px);
+}
+
 .proof-thumb {
   width: 42px;
   height: 42px;
@@ -872,6 +913,9 @@ body {
           <option value="low">Low</option>
         </select>
       </div>
+      <button class="pending-only-btn" onclick="togglePendingOnly()">
+    ⏳ Pending Only
+  </button>
     </div>
   </div>
   
@@ -1043,6 +1087,23 @@ function renderReports() {
   }).join('');
 }
 
+let pendingOnly = false;
+
+function togglePendingOnly() {
+  pendingOnly = !pendingOnly;
+
+  const btn = document.querySelector('.pending-only-btn');
+  btn.classList.toggle('active', pendingOnly);
+
+  if (pendingOnly) {
+    filteredReports = reports.filter(r => r.status === 'pending');
+  } else {
+    filteredReports = [...reports];
+  }
+
+  renderReports();
+}
+
 
 function filterReports() {
   const searchTerm =
@@ -1077,6 +1138,17 @@ function filterReports() {
 
     return matchesSearch && matchesStatus && matchesSeverity;
   });
+
+  /* ✅ ADD THIS PART */
+  const noResults = document.getElementById('noResults');
+  const textEl = noResults.querySelector('.no-results-text');
+
+  if (filteredReports.length === 0) {
+    textEl.textContent =
+      statusFilter === 'pending'
+        ? 'No pending reports 🎉'
+        : 'No reports found';
+  }
 
   renderReports();
 }
