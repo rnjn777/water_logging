@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Urban Flood Risk Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+* { 
+  box-sizing: border-box; 
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  overflow: hidden;
+}
+
+/* ANIMATED BACKGROUND PATTERN */
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+  animation: drift 20s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, 30px); }
+}
+
+/* HEADER */
+header {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(20px);
+  color: white;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent,
+    #3b82f6 20%,
+    #06b6d4 40%,
+    #10b981 60%,
+    #8b5cf6 80%,
+    transparent
+  );
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-icon {
+  font-size: 32px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffffff, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.header-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.critical-btn {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.critical-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.critical-btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.critical-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(220, 38, 38, 0.6);
+}
+
+.critical-btn:active {
+  transform: translateY(-1px);
+}
+
+/* CONTROLS BAR */
+.controls {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px 32px;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 5;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.controls label {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+select {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+  cursor: pointer;
+  color: #334155;
+  min-width: 160px;
+}
+
+select:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.report-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.report-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+/* MAP CONTAINER */
+.map-wrapper {
+  flex: 1;
+  position: relative;
+  margin: 16px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+/* LEGEND */
+#legend {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  padding: 14px 18px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  min-width: 150px;
+}
+
+.legend-title {
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 8px 0;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.2s ease;
+  padding: 3px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.legend-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+  transform: translateX(4px);
+}
+
+.box {
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.legend-item:hover .box {
+  transform: scale(1.15);
+}
+
+/* STATS BAR */
+.stats-bar {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  min-width: 100px;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.stat-high { color: #dc2626; }
+.stat-medium { color: #f97316; }
+.stat-low { color: #10b981; }
+
+/* MODAL */
+#modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#modalContent {
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  width: 500px;
+  max-height: 75vh;
+  overflow: hidden;
+  margin: 8vh auto;
+  border-radius: 20px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* REPORT MODAL */
+#reportModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+#reportModalContent {
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  width: 550px;
+  max-width: 90%;
+  max-height: 85vh;
+  overflow: hidden;
+  margin: 5vh auto;
+  border-radius: 20px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.report-modal-header {
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.report-modal-header h3 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.report-form {
+  padding: 28px;
+  max-height: calc(85vh - 100px);
+  overflow-y: auto;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.form-label .required {
+  color: #dc2626;
+  margin-left: 4px;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.photo-upload-area {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  background: #f8fafc;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.photo-upload-area:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.photo-upload-area.has-image {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.upload-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.upload-hint {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  margin-top: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.remove-image-btn {
+  margin-top: 12px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.remove-image-btn:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+}
+
+.location-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.location-info-title {
+  font-weight: 700;
+  color: #1e40af;
+  font-size: 13px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.location-coords {
+  color: #1e293b;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-submit,
+.btn-cancel {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.report-form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.report-form::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.report-form::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.report-form::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+  border-radius: 20px 20px 0 0;
+}
+
+.modal-header h3 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+#locationList {
+  max-height: calc(75vh - 100px);
+  overflow-y: auto;
+  padding: 20px 28px;
+}
+
+#locationList::-webkit-scrollbar {
+  width: 8px;
+}
+
+#locationList::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+#locationList::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+#locationList::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.location-item {
+  padding: 16px 20px;
+  cursor: pointer;
+  border-radius: 12px;
+  margin: 8px 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #334155;
+  font-weight: 600;
+  background: white;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.location-item:hover {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border-color: #fca5a5;
+  transform: translateX(8px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.15);
+}
+
+.location-number {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 28px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 12px;
+}
+
+/* ANIMATIONS */
+.leaflet-interactive {
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* LOADING ANIMATION */
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  z-index: 3000;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-content">
+    <div class="logo-icon">🌧</div>
+    <div>
+      <h1>Urban Flood Risk Dashboard</h1>
+      <div class="header-subtitle">Real-time flood monitoring & analysis system</div>
+    </div>
+  </div>
+  <button class="critical-btn" onclick="openModal()">⚠️ Critical Areas</button>
+</header>
+
+<div class="controls">
+  <div class="control-group">
+    <label>🌦️ Rain Intensity:</label>
+    <select onchange="setRain(this.value)">
+      <option value="Light">🌤 Light Rain</option>
+      <option value="Moderate">🌧 Moderate Rain</option>
+      <option value="Heavy">⛈ Heavy Rain</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label>📊 Report Severity:</label>
+    <select id="severitySelect">
+      <option value="Low">⚠️ Low</option>
+      <option value="Medium">🟠 Medium</option>
+      <option value="High">🔴 High</option>
+    </select>
+  </div>
+
+  <button class="report-btn" onclick="enableReportMode()">➕ Report Waterlogging</button>
+  <button class="report-btn" onclick="reportCurrentLocation()" style="background: linear-gradient(135deg, #10b981, #059669);">📍 Report My Location</button>
+</div>
+
+<div class="map-wrapper">
+  <div id="map"></div>
+  
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">High Risk</div>
+      <div class="stat-value stat-high" id="highCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Medium Risk</div>
+      <div class="stat-value stat-medium" id="mediumCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Low Risk</div>
+      <div class="stat-value stat-low" id="lowCount">0</div>
+    </div>
+  </div>
+  
+  <!-- Legend -->
+  <div id="legend">
+    <div class="legend-title">📊 Risk Levels</div>
+    <div class="legend-item"><span class="box low"></span> Low Risk</div>
+    <div class="legend-item"><span class="box medium"></span> Medium Risk</div>
+    <div class="legend-item"><span class="box high"></span> High Risk</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" onclick="closeModal(event)">
+  <div id="modalContent" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>🚨 Critical Flood Zones</h3>
+      <div class="modal-subtitle">Locations requiring immediate attention</div>
+    </div>
+    <div id="locationList"></div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div id="reportModal" onclick="closeReportModal(event)">
+  <div id="reportModalContent" onclick="event.stopPropagation()">
+    <div class="report-modal-header">
+      <h3>📍 Report Waterlogging</h3>
+      <button class="modal-close-btn" onclick="closeReportModal()">✕</button>
+    </div>
+    <div class="report-form">
+      <div class="location-info">
+        <div class="location-info-title">📍 Selected Location</div>
+        <div class="location-coords" id="reportLocationCoords">Lat: 0.0000, Lng: 0.0000</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Location Name<span class="required">*</span></label>
+        <input 
+          type="text" 
+          class="form-input" 
+          id="reportLocationName"
+          placeholder="Enter location name or nearby landmark..."
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Description (Optional)</label>
+        <textarea 
+          class="form-textarea" 
+          id="reportDescription"
+          placeholder="Describe the waterlogging situation, depth, affected area, etc..."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Photo Proof (Optional)</label>
+        <div class="photo-upload-area" id="photoUploadArea" onclick="document.getElementById('photoInput').click()">
+          <div id="uploadPrompt">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">Click to upload photo</div>
+            <div class="upload-hint">Maximum file size: 5MB | Supported: JPG, PNG</div>
+          </div>
+          <div id="imagePreview" style="display: none;">
+            <img id="previewImg" class="preview-image" src="" alt="Preview">
+            <button type="button" class="remove-image-btn" onclick="removeImage(event)">🗑️ Remove Photo</button>
+          </div>
+        </div>
+        <input 
+          type="file" 
+          id="photoInput" 
+          accept="image/*"
+          style="display: none;"
+          onchange="handleImageUpload(event)"
+        />
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-cancel" onclick="closeReportModal()">Cancel</button>
+        <button type="button" class="btn-submit" id="submitReportBtn" onclick="submitReport()">Submit Report</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+let rainLevel = "Light";
+let geojsonLayer;
+let reportMode = false;
+let priorityLocations = [];
+let stats = { high: 0, medium: 0, low: 0 };
+let currentReportLocation = null;
+let currentReportImage = null;
+
+const delhiBounds = L.latLngBounds(
+  [28.40, 76.80],
+  [28.95, 77.40]
+);
+
+const map = L.map("map", {
+  maxBounds: delhiBounds,
+  maxBoundsViscosity: 1.0,
+  minZoom: 10,
+  maxZoom: 17,
+  zoomControl: false
+}).setView([28.6139, 77.2090], 11);
+
+// Add zoom control to top right
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// Dark theme tile layer
+L.tileLayer(
+  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  { 
+    attribution: "© OpenStreetMap © CARTO",
+    maxZoom: 19
+  }
+).addTo(map);
+
+function getColor(risk) {
+  if (rainLevel === "Heavy") return "#dc2626";
+  if (rainLevel === "Moderate") {
+    if (risk !== "Low") return "#dc2626";
+    return "#f97316";
+  }
+  if (risk === "High") return "#dc2626";
+  if (risk === "Medium") return "#f97316";
+  return "#fde68a";
+}
+
+function getRadius() {
+  return rainLevel === "Heavy" ? 10 :
+         rainLevel === "Moderate" ? 9 : 8;
+}
+
+function updateStats(data) {
+  stats = { high: 0, medium: 0, low: 0 };
+  data.features.forEach(f => {
+    const risk = f.properties.Risk.toLowerCase();
+    stats[risk]++;
+  });
+  document.getElementById('highCount').textContent = stats.high;
+  document.getElementById('mediumCount').textContent = stats.medium;
+  document.getElementById('lowCount').textContent = stats.low;
+}
+
+fetch("data.geojson")
+  .then(res => res.json())
+  .then(data => {
+
+    updateStats(data);
+    priorityLocations = data.features.filter(f => f.properties.Risk === "High");
+
+    const list = document.getElementById("locationList");
+    priorityLocations.forEach((f, i) => {
+      const div = document.createElement("div");
+      div.className = "location-item";
+      div.innerHTML = `<span class="location-number">${i + 1}</span>${f.properties.Location_Road}`;
+      div.onclick = () => focusOnLocation(i);
+      list.appendChild(div);
+    });
+
+    geojsonLayer = L.geoJSON(data, {
+      pointToLayer: (f, latlng) =>
+        L.circleMarker(latlng, {
+          radius: getRadius(),
+          fillColor: getColor(f.properties.Risk),
+          fillOpacity: 0.85,
+          color: "#ffffff",
+          weight: 2
+        }),
+      onEachFeature: (f, layer) => {
+        layer.bindPopup(
+          `<div style="font-family: Inter, sans-serif; padding: 8px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">${f.properties.Location_Road}</h4>
+            <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">
+              <span style="color: ${getColor(f.properties.Risk)}; font-weight: 800;">${f.properties.Risk}</span> Risk Area
+            </p>
+          </div>`,
+          { className: 'custom-popup' }
+        );
+      }
+    }).addTo(map);
+
+    // Load and display approved user reports
+    loadApprovedReports();
+
+    updateLegend();
+  });
+
+function loadApprovedReports() {
+  const approvedLocations = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
+  
+  approvedLocations.forEach(report => {
+    const severityMap = {
+      'low': { color: '#fde68a', label: 'Low', icon: '⚠️' },
+      'medium': { color: '#f97316', label: 'Medium', icon: '🟠' },
+      'high': { color: '#dc2626', label: 'High', icon: '🔴' }
+    };
+    
+    const severity = severityMap[report.severity.toLowerCase()] || severityMap['medium'];
+    
+    // Add marker for approved report with severity-based styling
+    L.circleMarker([report.lat, report.lng], {
+      radius: getRadius(),
+      fillColor: severity.color,
+      fillOpacity: 0.85,
+      color: "#ffffff",
+      weight: 2
+    }).addTo(map)
+      .bindPopup(
+        `<div style="font-family: Inter, sans-serif; padding: 10px;">
+          <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">${severity.icon} ${report.location}</h4>
+          <p style="margin: 0 0 4px 0; color: #64748b; font-size: 14px; font-weight: 600;">
+            <span style="color: ${severity.color}; font-weight: 800;">${severity.label}</span> Risk Area
+          </p>
+          <p style="margin: 0 0 4px 0; color: #10b981; font-size: 12px; font-weight: 600;">✓ Verified Report</p>
+          <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px;">ID: ${report.id}</p>
+          <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 10px;">${report.timestamp}</p>
+        </div>`,
+        { className: 'custom-popup' }
+      );
+    
+    // Update stats to include approved reports
+    const severityLower = report.severity.toLowerCase();
+    if (stats[severityLower] !== undefined) {
+      stats[severityLower]++;
+    }
+  });
+  
+  // Update stats display with approved reports included
+  document.getElementById('highCount').textContent = stats.high;
+  document.getElementById('mediumCount').textContent = stats.medium;
+  document.getElementById('lowCount').textContent = stats.low;
+}
+
+function setRain(level) {
+  rainLevel = level;
+  geojsonLayer.setStyle(f => ({
+    fillColor: getColor(f.properties.Risk),
+    radius: getRadius()
+  }));
+  updateLegend();
+}
+
+function updateLegend() {
+  document.querySelector(".low").style.background =
+    rainLevel === "Heavy" ? "#dc2626" :
+    rainLevel === "Moderate" ? "#f97316" : "#fde68a";
+
+  document.querySelector(".medium").style.background =
+    rainLevel === "Light" ? "#f97316" : "#dc2626";
+
+  document.querySelector(".high").style.background = "#dc2626";
+}
+
+function focusOnLocation(index) {
+  closeModal();
+  const f = priorityLocations[index];
+  const [lng, lat] = f.geometry.coordinates;
+  map.setView([lat, lng], 15);
+
+  setTimeout(() => {
+    L.circleMarker([lat, lng], {
+      radius: 16,
+      fillColor: "#dc2626",
+      fillOpacity: 0.9,
+      color: "#ffffff",
+      weight: 3
+    }).addTo(map)
+      .bindPopup(
+        `<div style="font-family: Inter, sans-serif; padding: 12px;">
+          <h3 style="margin: 0 0 8px 0; color: #dc2626; font-size: 18px; font-weight: 800;">🚨 CRITICAL ZONE</h3>
+          <h4 style="margin: 0 0 4px 0; color: #1e293b; font-size: 16px; font-weight: 700;">${f.properties.Location_Road}</h4>
+          <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">Requires Immediate Attention</p>
+        </div>`
+      )
+      .openPopup();
+  }, 300);
+}
+
+/* MODAL CONTROLS */
+function openModal() {
+  document.getElementById("modal").style.display = "block";
+}
+
+function closeModal(e) {
+  if (e && e.target.id !== "modal") return;
+  document.getElementById("modal").style.display = "none";
+}
+
+function enableReportMode() {
+  reportMode = true;
+  map.getContainer().style.cursor = 'crosshair';
+  
+  const severitySelect = document.getElementById('severitySelect');
+  const severityLevel = severitySelect.value;
+  
+  const severityMap = {
+    'Low': { label: 'Low', color: '#fde68a', icon: '⚠️' },
+    'Medium': { label: 'Medium', color: '#f97316', icon: '🟠' },
+    'High': { label: 'High', color: '#dc2626', icon: '🔴' }
+  };
+  
+  const severity = severityMap[severityLevel];
+  
+  alert(`🎯 Report Mode Active!\n\nSeverity: ${severity.icon} ${severity.label}\nClick anywhere on the map to report waterlogging.`);
+  
+  map.once('click', function(e) {
+    map.getContainer().style.cursor = '';
+    reportMode = false;
+    submitReportAtLocation(e.latlng.lat, e.latlng.lng, false);
+  });
+}
+
+function checkDuplicateReport(lat, lng) {
+  // Check existing GeoJSON features
+  let hasDuplicate = false;
+  
+  if (geojsonLayer) {
+    geojsonLayer.eachLayer(layer => {
+      const layerLatLng = layer.getLatLng();
+      const distance = map.distance([lat, lng], [layerLatLng.lat, layerLatLng.lng]);
+      if (distance < 100) { // 100 meters
+        hasDuplicate = true;
+      }
+    });
+  }
+  
+  // Check approved reports
+  const approvedLocations = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
+  approvedLocations.forEach(report => {
+    const distance = map.distance([lat, lng], [report.lat, report.lng]);
+    if (distance < 100) {
+      hasDuplicate = true;
+    }
+  });
+  
+  // Check pending reports
+  const reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
+  reports.forEach(report => {
+    if (report.status === 'pending') {
+      const distance = map.distance([lat, lng], [report.lat, report.lng]);
+      if (distance < 100) {
+        hasDuplicate = true;
+      }
+    }
+  });
+  
+  return hasDuplicate;
+}
+
+function reportCurrentLocation() {
+  if (!navigator.geolocation) {
+    alert('❌ Geolocation is not supported by your browser.\n\nPlease use the "Report Waterlogging" button to manually select a location on the map.');
+    return;
+  }
+  
+  // Show loading indicator
+  alert('📍 Getting your location...\n\nPlease allow location access when prompted.');
+  
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+      
+      // Calculate distance from Delhi center (28.6139, 77.2090)
+      const delhiCenter = L.latLng(28.6139, 77.2090);
+      const userLocation = L.latLng(lat, lng);
+      const distanceFromCenter = delhiCenter.distanceTo(userLocation) / 1000; // in kilometers
+      
+      // Check if location is within 50km radius of Delhi center
+      if (distanceFromCenter > 50) {
+        alert(`❌ Location Out of Service Area\n\nYour location is approximately ${Math.round(distanceFromCenter)} km away from Delhi NCR center.\n\nThis system currently only monitors locations within 50 km of Delhi NCR.\n\nDistance from Delhi: ${Math.round(distanceFromCenter)} km\nMaximum allowed: 50 km\n\nPlease use this system when you're in Delhi NCR area.`);
+        return;
+      }
+      
+      // Additional check: strict bounds validation
+      if (lat < 28.40 || lat > 28.95 || lng < 76.80 || lng > 77.40) {
+        alert(`⚠️ Location Near Boundary\n\nYour location is ${Math.round(distanceFromCenter)} km from Delhi center, which is near the monitoring boundary.\n\nYou can still report, but please ensure you're within Delhi NCR region.`);
+      }
+      
+      // Zoom to user location
+      map.setView([lat, lng], 16);
+      
+      // Add temporary marker showing user location
+      const userMarker = L.circleMarker([lat, lng], {
+        radius: 10,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.7,
+        color: '#ffffff',
+        weight: 3
+      }).addTo(map);
+      
+      userMarker.bindPopup(
+        `<div style="font-family: Inter, sans-serif; padding: 10px; text-align: center;">
+          <h4 style="margin: 0 0 8px 0; color: #3b82f6; font-size: 16px; font-weight: 700;">📍 Your Location</h4>
+          <p style="margin: 0 0 4px 0; color: #64748b; font-size: 12px;">Accuracy: ±${Math.round(accuracy)}m</p>
+          <p style="margin: 0; color: #10b981; font-size: 11px;">Distance from Delhi: ${Math.round(distanceFromCenter)} km</p>
+        </div>`
+      ).openPopup();
+      
+      // Ask if user wants to report this location
+      setTimeout(() => {
+        const confirmReport = confirm(`✅ Location Found!\n\nAccuracy: ±${Math.round(accuracy)} meters\nDistance from Delhi center: ${Math.round(distanceFromCenter)} km\nCoordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\nDo you want to report waterlogging at your current location?`);
+        
+        if (confirmReport) {
+          submitReportAtLocation(lat, lng, true);
+        } else {
+          map.removeLayer(userMarker);
+        }
+      }, 500);
+    },
+    function(error) {
+      let errorMsg = '';
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          errorMsg = '❌ Location Access Denied\n\nYou denied the location permission request. Please use the "Report Waterlogging" button to manually select a location on the map.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMsg = '❌ Location Unavailable\n\nYour location information is unavailable. Please try again or use manual reporting.';
+          break;
+        case error.TIMEOUT:
+          errorMsg = '❌ Request Timeout\n\nThe request to get your location timed out. Please try again.';
+          break;
+        default:
+          errorMsg = '❌ Unknown Error\n\nAn unknown error occurred. Please use manual reporting.';
+      }
+      alert(errorMsg);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
+}
+
+function submitReportAtLocation(lat, lng, isCurrentLocation = false) {
+  const severitySelect = document.getElementById('severitySelect');
+  const severityLevel = severitySelect.value;
+  
+  const severityMap = {
+    'Low': { label: 'Low', color: '#fde68a', icon: '⚠️' },
+    'Medium': { label: 'Medium', color: '#f97316', icon: '🟠' },
+    'High': { label: 'High', color: '#dc2626', icon: '🔴' }
+  };
+  
+  const severity = severityMap[severityLevel];
+  
+  const locationName = prompt(`${isCurrentLocation ? '📍 Reporting at Your Location' : '📍 Reporting Location'}\n\nEnter location name or nearby landmark:`);
+  
+  if (!locationName || locationName.trim() === '') {
+    alert('❌ Location name is required. Report cancelled.');
+    return;
+  }
+  
+  // Check for duplicate reports (within 100m radius)
+  const isDuplicate = checkDuplicateReport(lat, lng);
+  if (isDuplicate) {
+    const confirm = window.confirm('⚠️ There is already a report within 100 meters of this location.\n\nDo you still want to submit this report?');
+    if (!confirm) {
+      return;
+    }
+  }
+  
+  // Create report object
+  const report = {
+    id: 'WL-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-6),
+    location: locationName.trim(),
+    lat: parseFloat(lat.toFixed(6)),
+    lng: parseFloat(lng.toFixed(6)),
+    severity: severity.label.toLowerCase(),
+    status: 'pending',
+    timestamp: new Date().toLocaleString('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }),
+    reportedVia: isCurrentLocation ? 'gps' : 'manual'
+  };
+  
+  // Store report in localStorage for admin to review
+  let reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
+  reports.push(report);
+  localStorage.setItem('waterloggingReports', JSON.stringify(reports));
+  
+  // Show success message
+  alert(`✅ Report Submitted Successfully!\n\nReport ID: ${report.id}\nLocation: ${locationName}\nSeverity: ${severity.icon} ${severity.label}\n${isCurrentLocation ? '📍 Reported via GPS\n' : ''}\nYour report has been sent to admin for review.`);
+  
+  // Add temporary marker with severity-based styling
+  const tempMarker = L.circleMarker([lat, lng], {
+    radius: 10,
+    fillColor: '#94a3b8',
+    fillOpacity: 0.6,
+    color: severity.color,
+    weight: 3,
+    dashArray: '5, 5'
+  }).addTo(map);
+  
+  tempMarker.bindPopup(
+    `<div style="font-family: Inter, sans-serif; padding: 12px;">
+      <h4 style="margin: 0 0 8px 0; color: #64748b; font-size: 16px; font-weight: 700;">⏳ Pending Review</h4>
+      <p style="margin: 0 0 4px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${locationName}</p>
+      <p style="margin: 0 0 4px 0; color: #64748b; font-size: 13px;">Severity: ${severity.icon} ${severity.label}</p>
+      ${isCurrentLocation ? `<p style="margin: 0 0 4px 0; color: #3b82f6; font-size: 12px; font-weight: 600;">📍 GPS Location</p>` : ''}
+      <p style="margin: 0; color: #f59e0b; font-weight: 600; font-size: 13px;">📋 Awaiting admin approval</p>
+    </div>`
+  ).openPopup();
+}
+
+// Custom popup styling
+const style = document.createElement('style');
+style.textContent = `
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+  }
+  .leaflet-popup-tip {
+    display: none;
+  }
+`;
+document.head.appendChild(style);
+</script>
+
+</body>
+</html>

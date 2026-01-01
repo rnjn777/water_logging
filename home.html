@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Waterlogging Monitoring System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ANIMATED BACKGROUND */
+.bg-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.water-drop {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.4), transparent);
+  border-radius: 50%;
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-100px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+.water-drop:nth-child(1) { left: 10%; animation-duration: 3s; animation-delay: 0s; }
+.water-drop:nth-child(2) { left: 25%; animation-duration: 4s; animation-delay: 1s; }
+.water-drop:nth-child(3) { left: 40%; animation-duration: 3.5s; animation-delay: 0.5s; }
+.water-drop:nth-child(4) { left: 55%; animation-duration: 4.5s; animation-delay: 1.5s; }
+.water-drop:nth-child(5) { left: 70%; animation-duration: 3.8s; animation-delay: 0.8s; }
+.water-drop:nth-child(6) { left: 85%; animation-duration: 4.2s; animation-delay: 2s; }
+
+/* NAVBAR */
+.navbar {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  padding: 20px 0;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 800;
+  color: white;
+}
+
+.logo-icon {
+  font-size: 36px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.logo-text {
+  background: linear-gradient(135deg, #ffffff, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+.nav-links a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  transition: width 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: #ffffff;
+}
+
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+/* HERO SECTION */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 40px 60px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content {
+  max-width: 1200px;
+  text-align: center;
+}
+
+.hero-badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 8px 20px;
+  border-radius: 50px;
+  color: #60a5fa;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 24px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hero h1 {
+  font-size: 64px;
+  font-weight: 900;
+  color: white;
+  margin-bottom: 24px;
+  line-height: 1.2;
+  letter-spacing: -2px;
+}
+
+.hero h1 .gradient-text {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.hero-description {
+  font-size: 20px;
+  color: #cbd5e1;
+  margin-bottom: 48px;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+/* FEATURE CARDS */
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 60px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 32px 24px;
+  border-radius: 16px;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-8px);
+  box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+}
+
+.feature-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.feature-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.feature-desc {
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+/* LOGIN BUTTONS */
+.login-section {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 36px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.login-btn:hover::before {
+  width: 400px;
+  height: 400px;
+}
+
+.user-login {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+}
+
+.user-login:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(59, 130, 246, 0.6);
+}
+
+.admin-login {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);
+}
+
+.admin-login:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(220, 38, 38, 0.6);
+}
+
+.btn-icon {
+  font-size: 24px;
+}
+
+/* STATS SECTION */
+.stats-section {
+  margin-top: 80px;
+  padding: 60px 40px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 40px;
+  text-align: center;
+}
+
+.stat-item {
+  padding: 20px;
+}
+
+.stat-number {
+  font-size: 48px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* FOOTER */
+.footer {
+  padding: 40px 40px 30px;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  color: #94a3b8;
+  position: relative;
+  z-index: 1;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-links {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.footer-links a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: #60a5fa;
+}
+
+.copyright {
+  font-size: 13px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 40px;
+  }
+  
+  .features {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .login-section {
+    flex-direction: column;
+  }
+  
+  .nav-links {
+    display: none;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ANIMATED BACKGROUND -->
+<div class="bg-animation">
+  <div class="water-drop"></div>
+  <div class="water-drop"></div>
+  <div class="water-drop"></div>
+  <div class="water-drop"></div>
+  <div class="water-drop"></div>
+  <div class="water-drop"></div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="logo">
+      <span class="logo-icon">🌧</span>
+      <span class="logo-text">AquaWatch</span>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+      <a href="#stats">Statistics</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO SECTION -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">🚀 Smart City Solution</div>
+    
+    <h1>
+      <span class="gradient-text">Waterlogging</span><br>
+      Monitoring & Hotspot Detection
+    </h1>
+    
+    <p class="hero-description">
+      Real-time monitoring system for urban flood risk assessment. 
+      Identify critical zones, report waterlogging incidents, and help build safer communities.
+    </p>
+    
+    <!-- FEATURES -->
+    <div class="features" id="features">
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <div class="feature-title">Interactive Maps</div>
+        <div class="feature-desc">Visualize flood hotspots with dynamic, real-time mapping</div>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">⚠️</div>
+        <div class="feature-title">Risk Analysis</div>
+        <div class="feature-desc">AI-powered severity assessment and predictions</div>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Live Dashboard</div>
+        <div class="feature-desc">Monitor critical areas and track incidents instantly</div>
+      </div>
+    </div>
+    
+    <!-- LOGIN BUTTONS -->
+    <div class="login-section">
+      <a href="index.html" class="login-btn user-login">
+        <span class="btn-icon">👤</span>
+        <span>User Login</span>
+      </a>
+      
+      <a href="admin.html" class="login-btn admin-login">
+        <span class="btn-icon">🔐</span>
+        <span>Admin Login</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS SECTION -->
+<section class="stats-section" id="stats">
+  <div class="stats-container">
+    <div class="stat-item">
+      <div class="stat-number">247</div>
+      <div class="stat-label">Monitored Areas</div>
+    </div>
+    
+    <div class="stat-item">
+      <div class="stat-number">1.2K</div>
+      <div class="stat-label">Active Reports</div>
+    </div>
+    
+    <div class="stat-item">
+      <div class="stat-number">98%</div>
+      <div class="stat-label">Accuracy Rate</div>
+    </div>
+    
+    <div class="stat-item">
+      <div class="stat-number">24/7</div>
+      <div class="stat-label">Monitoring</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-links">
+      <a href="#privacy">Privacy Policy</a>
+      <a href="#terms">Terms of Service</a>
+      <a href="#api">API Documentation</a>
+      <a href="#support">Support</a>
+    </div>
+    
+    <div class="copyright">
+      © 2024 AquaWatch - Waterlogging Monitoring System. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
