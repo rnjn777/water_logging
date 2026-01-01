@@ -954,87 +954,67 @@ function hasNearbyReport(lat, lng, radiusMeters = 100) {
   const reports = [];
 
   /* ============================
-     1. CHECK PENDING USER REPORTS
+     1. CHECK PENDING REPORTS
      ============================ */
   const pending = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
   pending.forEach(r => {
     if (r.lat != null && r.lng != null) {
-      const distance = getDistanceInMeters(lat, lng, r.lat, r.lng);
-      if (distance <= radiusMeters) {
+      const d = getDistanceInMeters(lat, lng, r.lat, r.lng);
+      if (d <= radiusMeters) {
         reports.push({
-          distance: Math.round(distance),
-          location: r.location || 'Unnamed location',
+          distance: Math.round(d),
+          location: r.location || 'User Report',
           status: 'pending',
-          severity: r.severity || 'unknown',
-          ignoreForBlocking: false
+          severity: r.severity || 'unknown'
         });
       }
     }
   });
 
-  /* =============================
-     2. CHECK APPROVED USER REPORTS
-     ============================= */
+  /* ============================
+     2. CHECK APPROVED REPORTS
+     ============================ */
   const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
   approved.forEach(r => {
     if (r.lat != null && r.lng != null) {
-      const distance = getDistanceInMeters(lat, lng, r.lat, r.lng);
-      if (distance <= radiusMeters) {
+      const d = getDistanceInMeters(lat, lng, r.lat, r.lng);
+      if (d <= radiusMeters) {
         reports.push({
-          distance: Math.round(distance),
-          location: r.location || 'Unnamed location',
+          distance: Math.round(d),
+          location: r.location || 'Verified Report',
           status: 'approved',
-          severity: r.severity || 'unknown',
-          ignoreForBlocking: false
+          severity: r.severity || 'unknown'
         });
       }
     }
   });
 
-  /* =========================================
-     3. CHECK OFFICIAL GEOJSON (INFO ONLY)
-     DOES NOT BLOCK SUBMISSION
-     ========================================= */
+  /* ============================
+     3. CHECK OFFICIAL GEOJSON
+     ============================ */
   if (geojsonLayer) {
     geojsonLayer.eachLayer(layer => {
-      const layerLatLng = layer.getLatLng();
-      const distance = getDistanceInMeters(
-        lat,
-        lng,
-        layerLatLng.lat,
-        layerLatLng.lng
-      );
+      const ll = layer.getLatLng();
+      const d = getDistanceInMeters(lat, lng, ll.lat, ll.lng);
 
-      if (distance <= radiusMeters) {
-        const props = layer.feature.properties;
+      if (d <= radiusMeters) {
+        const p = layer.feature.properties;
         reports.push({
-          distance: Math.round(distance),
-          location: props.Location_Road || 'Official waterlogging area',
+          distance: Math.round(d),
+          location: p.Location_Road || 'Official Waterlogging Area',
           status: 'official',
-          severity: props.Risk ? props.Risk.toLowerCase() : 'unknown',
-          ignoreForBlocking: true   // ⭐ DOES NOT BLOCK
+          severity: p.Risk ? p.Risk.toLowerCase() : 'unknown'
         });
       }
     });
   }
 
-  /* ============================
-     4. BLOCK ONLY USER REPORTS
-     ============================ */
-  const blockingReports = reports.filter(r => !r.ignoreForBlocking);
-
-  if (blockingReports.length > 0) {
-    blockingReports.sort((a, b) => a.distance - b.distance);
-    return {
-      found: true,
-      reports: blockingReports
-    };
+  if (reports.length > 0) {
+    reports.sort((a, b) => a.distance - b.distance);
+    return { found: true, reports };
   }
 
-  return {
-    found: false,
-    reports: []
-  };
+  return { found: false, reports: [] };
 }
 
 
@@ -1079,26 +1059,36 @@ function enableReportMode() {
 
   map.once('click', function (e) {
     map.getContainer().style.cursor = '';
+
+    const check = hasNearbyReport(e.latlng.lat, e.latlng.lng, 100);
+
+    if (check.found) {
+      showDuplicateWarning(check.reports);
+      return; // 🚫 DO NOT OPEN FORM
+    }
+
     openReportModal(e.latlng.lat, e.latlng.lng, false);
   });
 }
 
+
 function reportCurrentLocation() {
   if (!navigator.geolocation) return;
 
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
 
-      map.setView([lat, lng], 16);
-      openReportModal(lat, lng, true);
-    },
-    () => {
-      openReportModal(28.6139, 77.2090, true);
-    },
-    { enableHighAccuracy: true }
-  );
+    map.setView([lat, lng], 16);
+
+    const check = hasNearbyReport(lat, lng, 100);
+    if (check.found) {
+      showDuplicateWarning(check.reports);
+      return; // 🚫 NO FORM
+    }
+
+    openReportModal(lat, lng, true);
+  });
 }
 
 function openReportModal(lat, lng, isGPS) {
