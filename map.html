@@ -933,6 +933,111 @@ const delhiBounds = L.latLngBounds(
   [28.95, 77.40]
 );
 
+function getDistanceInMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // Earth radius in meters
+  const toRad = deg => deg * Math.PI / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+function hasNearbyReport(lat, lng, radiusMeters = 100) {
+  const reports = [];
+
+  /* ============================
+     1. CHECK PENDING USER REPORTS
+     ============================ */
+  const pending = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
+  pending.forEach(r => {
+    if (r.lat != null && r.lng != null) {
+      const distance = getDistanceInMeters(lat, lng, r.lat, r.lng);
+      if (distance <= radiusMeters) {
+        reports.push({
+          distance: Math.round(distance),
+          location: r.location || 'Unnamed location',
+          status: 'pending',
+          severity: r.severity || 'unknown',
+          ignoreForBlocking: false
+        });
+      }
+    }
+  });
+
+  /* =============================
+     2. CHECK APPROVED USER REPORTS
+     ============================= */
+  const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
+  approved.forEach(r => {
+    if (r.lat != null && r.lng != null) {
+      const distance = getDistanceInMeters(lat, lng, r.lat, r.lng);
+      if (distance <= radiusMeters) {
+        reports.push({
+          distance: Math.round(distance),
+          location: r.location || 'Unnamed location',
+          status: 'approved',
+          severity: r.severity || 'unknown',
+          ignoreForBlocking: false
+        });
+      }
+    }
+  });
+
+  /* =========================================
+     3. CHECK OFFICIAL GEOJSON (INFO ONLY)
+     DOES NOT BLOCK SUBMISSION
+     ========================================= */
+  if (geojsonLayer) {
+    geojsonLayer.eachLayer(layer => {
+      const layerLatLng = layer.getLatLng();
+      const distance = getDistanceInMeters(
+        lat,
+        lng,
+        layerLatLng.lat,
+        layerLatLng.lng
+      );
+
+      if (distance <= radiusMeters) {
+        const props = layer.feature.properties;
+        reports.push({
+          distance: Math.round(distance),
+          location: props.Location_Road || 'Official waterlogging area',
+          status: 'official',
+          severity: props.Risk ? props.Risk.toLowerCase() : 'unknown',
+          ignoreForBlocking: true   // ⭐ DOES NOT BLOCK
+        });
+      }
+    });
+  }
+
+  /* ============================
+     4. BLOCK ONLY USER REPORTS
+     ============================ */
+  const blockingReports = reports.filter(r => !r.ignoreForBlocking);
+
+  if (blockingReports.length > 0) {
+    blockingReports.sort((a, b) => a.distance - b.distance);
+    return {
+      found: true,
+      reports: blockingReports
+    };
+  }
+
+  return {
+    found: false,
+    reports: []
+  };
+}
+
+
 const map = L.map("map", {
   maxBounds: delhiBounds,
   maxBoundsViscosity: 1.0,
@@ -1005,11 +1110,13 @@ function openReportModal(lat, lng, isGPS) {
   document.getElementById('reportModal').style.display = 'block';
 }
 
-function closeReportModal() {
+function closeReportModal(e) {
+  if (e && e.target.id !== 'reportModal') return;
   document.getElementById('reportModal').style.display = 'none';
   currentReportLatLng = null;
   removeImage();
 }
+
 
 function goHome() {
   window.location.href = "index.html";
@@ -1040,7 +1147,6 @@ function removeImage(e) {
   document.getElementById('imagePreview').style.display = 'none';
   document.getElementById('photoUploadArea').classList.remove('has-image');
 }
-
 
 function updateStats(data) {
   stats = { high: 0, medium: 0, low: 0 };
@@ -1164,25 +1270,46 @@ function updateLegend() {
 }
 
 function submitReport() {
-  if (!currentReportLatLng) return;
+  console.log('Checking duplicate at:', currentReportLatLng);
+
+  if (!currentReportLatLng) {
+    showWarningModal('Error', 'Please select a location first');
+    return;
+  }
+
+  // Check for nearby reports within 100m radius
+  const nearbyCheck = hasNearbyReport(
+    currentReportLatLng.lat,
+    currentReportLatLng.lng,
+    100
+  );
+
+  if (nearbyCheck.found) {
+    showDuplicateWarning(nearbyCheck.reports);
+    return;
+  }
 
   const locationName = document.getElementById('reportLocationName').value.trim();
   const description = document.getElementById('reportDescription').value.trim();
   const severity = document.getElementById('severitySelect').value.toLowerCase();
 
-  if (!locationName) return;
+  if (!locationName) {
+    showWarningModal('Missing Information', 'Please provide a location name');
+    return;
+  }
 
-  const report = {
-    id: 'WL-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-6),
-    location: locationName,
-    description,
-    lat: +currentReportLatLng.lat.toFixed(6),
-    lng: +currentReportLatLng.lng.toFixed(6),
-    severity,
-    status: 'pending',
-    image: currentReportImageBase64,
-    timestamp: new Date().toLocaleString('en-IN')
-  };
+const report = {
+  id: 'WL-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-6),
+  location: locationName,
+  description,
+  lat: Number(currentReportLatLng.lat),
+  lng: Number(currentReportLatLng.lng),
+  severity,
+  status: 'pending',
+  image: currentReportImageBase64,
+  timestamp: new Date().toLocaleString('en-IN'),
+  createdAt: Date.now() // 🔴 REQUIRED
+};
 
   const reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
   reports.push(report);
@@ -1198,8 +1325,253 @@ function submitReport() {
   }).addTo(map);
 
   closeReportModal();
+  showSuccessModal('Report Submitted', 'Your waterlogging report has been submitted successfully!');
 }
 
+function showDuplicateWarning(reports) {
+  let reportsHTML = '';
+  
+  reports.forEach((report, index) => {
+    const statusBadge = report.status === 'approved' ? 
+      '<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">✓ VERIFIED</span>' :
+      report.status === 'official' ?
+      '<span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">OFFICIAL</span>' :
+      '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">PENDING</span>';
+    
+    const severityColor = report.severity === 'high' ? '#dc2626' : 
+                          report.severity === 'medium' ? '#f97316' : '#fde68a';
+    
+    reportsHTML += `
+      <div style="background: #f8fafc; border-left: 4px solid ${severityColor}; padding: 12px; margin: 8px 0; border-radius: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <strong style="color: #1e293b; font-size: 14px;">${report.location}</strong>
+          ${statusBadge}
+        </div>
+        <div style="color: #64748b; font-size: 13px; margin-bottom: 4px;">
+          <span style="color: ${severityColor}; font-weight: 700; text-transform: uppercase;">${report.severity}</span> severity
+        </div>
+        <div style="color: #94a3b8; font-size: 12px;">
+          📍 ${report.distance} meters away
+        </div>
+      </div>
+    `;
+  });
+  
+  const warningHTML = `
+    <div id="duplicateWarningModal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      backdrop-filter: blur(4px);
+    ">
+      <div style="
+        background: white;
+        border-radius: 16px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease-out;
+      ">
+        <div style="
+          background: linear-gradient(135deg, #dc2626 0%, #f97316 100%);
+          padding: 24px;
+          border-radius: 16px 16px 0 0;
+          text-align: center;
+        ">
+          <div style="font-size: 48px; margin-bottom: 8px;">⚠️</div>
+          <h2 style="margin: 0; color: white; font-size: 24px; font-weight: 800;">Duplicate Report Detected</h2>
+        </div>
+        
+        <div style="padding: 24px;">
+          <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+            <strong>Waterlogging has already been reported in this area.</strong> To avoid duplicate reports, please check existing reports within a 100-meter radius:
+          </p>
+          
+          <div style="margin: 20px 0;">
+            ${reportsHTML}
+          </div>
+          
+          <div style="background: #fef3c7; border: 1px solid #fbbf24; padding: 12px; border-radius: 8px; margin: 16px 0;">
+            <p style="margin: 0; color: #92400e; font-size: 13px; line-height: 1.5;">
+              <strong>💡 Tip:</strong> Check the map for existing markers before submitting a new report. This helps us maintain accurate data.
+            </p>
+          </div>
+          
+          <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button onclick="closeDuplicateWarning()" style="
+              flex: 1;
+              padding: 14px;
+              background: #1e293b;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              font-size: 15px;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.2s;
+            " onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+              Got It
+            </button>
+            <button onclick="viewNearbyReports()" style="
+              flex: 1;
+              padding: 14px;
+              background: white;
+              color: #1e293b;
+              border: 2px solid #1e293b;
+              border-radius: 8px;
+              font-size: 15px;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.2s;
+            " onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+              View on Map
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <style>
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  `;
+  
+  const existingModal = document.getElementById('duplicateWarningModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  document.body.insertAdjacentHTML('beforeend', warningHTML);
+}
+
+function closeDuplicateWarning() {
+  const modal = document.getElementById('duplicateWarningModal');
+  if (modal) {
+    modal.style.animation = 'slideOut 0.2s ease-in';
+    setTimeout(() => modal.remove(), 200);
+  }
+}
+
+function viewNearbyReports() {
+  closeDuplicateWarning();
+  closeReportModal();
+  
+  if (currentReportLatLng) {
+    map.setView([currentReportLatLng.lat, currentReportLatLng.lng], 15);
+  }
+}
+
+function showSuccessModal(title, message) {
+  const successHTML = `
+    <div id="successModal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    ">
+      <div style="
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      ">
+        <div style="font-size: 56px; margin-bottom: 16px;">✅</div>
+        <h2 style="margin: 0 0 12px 0; color: #1e293b; font-size: 22px; font-weight: 800;">${title}</h2>
+        <p style="margin: 0 0 24px 0; color: #64748b; font-size: 15px;">${message}</p>
+        <button onclick="closeSuccessModal()" style="
+          padding: 12px 32px;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+        ">OK</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', successHTML);
+}
+
+function closeSuccessModal() {
+  const modal = document.getElementById('successModal');
+  if (modal) modal.remove();
+}
+
+function showWarningModal(title, message) {
+  const warningHTML = `
+    <div id="warningModal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    ">
+      <div style="
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        text-align: center;
+        max-width: 400px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      ">
+        <div style="font-size: 56px; margin-bottom: 16px;">⚠️</div>
+        <h2 style="margin: 0 0 12px 0; color: #1e293b; font-size: 22px; font-weight: 800;">${title}</h2>
+        <p style="margin: 0 0 24px 0; color: #64748b; font-size: 15px;">${message}</p>
+        <button onclick="closeWarningModal()" style="
+          padding: 12px 32px;
+          background: #f97316;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+        ">OK</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', warningHTML);
+}
+
+function closeWarningModal() {
+  const modal = document.getElementById('warningModal');
+  if (modal) modal.remove();
+}
 
 function focusOnLocation(index) {
   closeModal();
@@ -1237,43 +1609,6 @@ function closeModal(e) {
 }
 
 
-function checkDuplicateReport(lat, lng) {
-  // Check existing GeoJSON features
-  let hasDuplicate = false;
-  
-  if (geojsonLayer) {
-    geojsonLayer.eachLayer(layer => {
-      const layerLatLng = layer.getLatLng();
-      const distance = map.distance([lat, lng], [layerLatLng.lat, layerLatLng.lng]);
-      if (distance < 100) { // 100 meters
-        hasDuplicate = true;
-      }
-    });
-  }
-  
-  // Check approved reports
-  const approvedLocations = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
-  approvedLocations.forEach(report => {
-    const distance = map.distance([lat, lng], [report.lat, report.lng]);
-    if (distance < 100) {
-      hasDuplicate = true;
-    }
-  });
-  
-  // Check pending reports
-  const reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
-  reports.forEach(report => {
-    if (report.status === 'pending') {
-      const distance = map.distance([lat, lng], [report.lat, report.lng]);
-      if (distance < 100) {
-        hasDuplicate = true;
-      }
-    }
-  });
-  
-  return hasDuplicate;
-}
-
 
 // Custom popup styling
 const style = document.createElement('style');
@@ -1286,11 +1621,20 @@ style.textContent = `
   .leaflet-popup-tip {
     display: none;
   }
+  
+  @keyframes slideOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+  }
 `;
 document.head.appendChild(style);
 
 </script>
-
 </body>
 </html>
-
