@@ -1,0 +1,980 @@
+{
+   "type": "FeatureCollection",
+   "features": [
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2604858,28.7036275 ]
+    },
+    "properties": {
+    "S.No":1,
+    "Location_Road":"Bhajanpura Mazar, Wazirabad Road",
+    "Full_Location":"Bhajanpura Mazar, Wazirabad Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2890441,28.7013273 ]
+    },
+    "properties": {
+    "S.No":2,
+    "Location_Road":"Loni Gol Chakkar, Wazirabad Road",
+    "Full_Location":"Loni Gol Chakkar, Wazirabad Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.222379,28.636414 ]
+    },
+    "properties": {
+    "S.No":3,
+    "Location_Road":"Minto Bridge Underpass, Deen Dayal Upadhyaya Marg",
+    "Full_Location":"Minto Bridge Underpass, Deen Dayal Upadhyaya Marg, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1805027,28.5645306 ]
+    },
+    "properties": {
+    "S.No":4,
+    "Location_Road":"Sector 1, RK Puram, Vivek Anand Marg",
+    "Full_Location":"Sector 1, RK Puram, Vivek Anand Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1662821,28.6708784 ]
+    },
+    "properties": {
+    "S.No":5,
+    "Location_Road":"Inder Lok Chowk, Vir Banda Bairagi Marg",
+    "Full_Location":"Inder Lok Chowk, Vir Banda Bairagi Marg, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1708316,28.6725163 ]
+    },
+    "properties": {
+    "S.No":6,
+    "Location_Road":"Indra Colony Daya Basti, Vir Banda Bairagi Marg",
+    "Full_Location":"Indra Colony Daya Basti, Vir Banda Bairagi Marg, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.195989,28.59445 ]
+    },
+    "properties": {
+    "S.No":7,
+    "Location_Road":"Ashoka Hotel, Vinay Marg",
+    "Full_Location":"Ashoka Hotel, Vinay Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2775876,28.6307088 ]
+    },
+    "properties": {
+    "S.No":8,
+    "Location_Road":"Vijay Chowk, Vikas Marg",
+    "Full_Location":"Vijay Chowk, Vikas Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2698372,28.6282624 ]
+    },
+    "properties": {
+    "S.No":9,
+    "Location_Road":"Laxmi Nagar, Vikas Marg",
+    "Full_Location":"Laxmi Nagar, Vikas Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1653915,28.6692069 ]
+    },
+    "properties": {
+    "S.No":10,
+    "Location_Road":"Under Zakhira Flyover / Zakhira Underpass, Veer Banda Bairagi Marg",
+    "Full_Location":"Zakhira Underpass, Veer Banda Bairagi Marg, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2053081,28.6465821 ]
+    },
+    "properties": {
+    "S.No":11,
+    "Location_Road":"Azad Market, Veer Banda Bairagi Marg / Rani Jhansi Marg",
+    "Full_Location":"Azad Market, Rani Jhansi Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1850825,28.6421273 ]
+    },
+    "properties": {
+    "S.No":12,
+    "Location_Road":"Buddha Garden Gate No.2, Vande Matram Marg",
+    "Full_Location":"Buddha Garden Gate No.2, Vande Matram Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.091459,28.538146 ]
+    },
+    "properties": {
+    "S.No":13,
+    "Location_Road":"Samalkha Crossing, Urban Extension Road-II",
+    "Full_Location":"Samalkha Crossing, Urban Extension Road-II, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1298204,28.5648085 ]
+    },
+    "properties": {
+    "S.No":14,
+    "Location_Road":"Mehram Nagar Opp. Palam Airport, Ulan Batar Marg",
+    "Full_Location":"Mehram Nagar, Ulan Batar Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1343821,28.5729502 ]
+    },
+    "properties": {
+    "S.No":15,
+    "Location_Road":"Nav Sena Bhawan, Ulan Batar Marg",
+    "Full_Location":"Nav Sena Bhawan, Ulan Batar Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2112942,28.5975251 ]
+    },
+    "properties": {
+    "S.No":16,
+    "Location_Road":"Gol Methi, Tughlak Road",
+    "Full_Location":"Gol Methi, Tughlak Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2112942,28.5975251 ]
+    },
+    "properties": {
+    "S.No":17,
+    "Location_Road":"Roundabout, Tughlak Road",
+    "Full_Location":"Roundabout, Tughlak Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.3139341,28.6140781 ]
+    },
+    "properties": {
+    "S.No":18,
+    "Location_Road":"Central Market, TT Park Road",
+    "Full_Location":"Central Market, TT Park Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2403308,28.6251342 ]
+    },
+    "properties": {
+    "S.No":19,
+    "Location_Road":"Tilak Bridge, Tilak Marg",
+    "Full_Location":"Tilak Bridge, Tilak Marg, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1263371,28.5852368 ]
+    },
+    "properties": {
+    "S.No":20,
+    "Location_Road":"Near Red Light, Thimayya Marg",
+    "Full_Location":"Red Light, Thimayya Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2002265,28.6039163 ]
+    },
+    "properties": {
+    "S.No":21,
+    "Location_Road":"Near RTMH, Teen Murti Marg",
+    "Full_Location":"Teen Murti Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2002265,28.6039163 ]
+    },
+    "properties": {
+    "S.No":22,
+    "Location_Road":"R/A GKP, Teen Murti Marg",
+    "Full_Location":"Teen Murti Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2002265,28.6039163 ]
+    },
+    "properties": {
+    "S.No":23,
+    "Location_Road":"Teen Murti, Teen Murti Marg",
+    "Full_Location":"Teen Murti Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.198506,28.6045861 ]
+    },
+    "properties": {
+    "S.No":24,
+    "Location_Road":"Haifa Chowk, Teen Murti Haifa Marg",
+    "Full_Location":"Haifa Chowk, Teen Murti Haifa Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.202697,28.625857 ]
+    },
+    "properties": {
+    "S.No":25,
+    "Location_Road":"RML Hospital, Talkatora Road",
+    "Full_Location":"RML Hospital, Talkatora Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1866148,28.6730648 ]
+    },
+    "properties": {
+    "S.No":26,
+    "Location_Road":"Gulabi Bagh, Swami Narayan Marg",
+    "Full_Location":"Gulabi Bagh, Swami Narayan Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2807822,28.6702448 ]
+    },
+    "properties": {
+    "S.No":27,
+    "Location_Road":"Bihari Colony, Swami Dayanand Marg",
+    "Full_Location":"Bihari Colony, Swami Dayanand Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.3022868,28.6529458 ]
+    },
+    "properties": {
+    "S.No":28,
+    "Location_Road":"Karkardooma Court Gate No.1, Surajmal Marg",
+    "Full_Location":"Karkardooma Court Gate No.1, Surajmal Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2670954,28.4997268 ]
+    },
+    "properties": {
+    "S.No":29,
+    "Location_Road":"Near Dr Karni Singh Shooting Range Red Light, Surajkund Road",
+    "Full_Location":"Dr Karni Singh Shooting Range, Surajkund Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2670238,28.497031 ]
+    },
+    "properties": {
+    "S.No":30,
+    "Location_Road":"Near MCD Toll, Surajkund Road",
+    "Full_Location":"MCD Toll, Surajkund Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2305428,28.6018199 ]
+    },
+    "properties": {
+    "S.No":31,
+    "Location_Road":"Khan Market, Subramaniam Bharti Marg",
+    "Full_Location":"Khan Market, Subramaniam Bharti Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.172259,28.5918469 ]
+    },
+    "properties": {
+    "S.No":32,
+    "Location_Road":"Abai Marg between San Martin Marg to SPM Marg",
+    "Full_Location":"Abai Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2324479,28.6256411 ]
+    },
+    "properties": {
+    "S.No":33,
+    "Location_Road":"Roundabout Mandi House, Sikandra Marg",
+    "Full_Location":"Mandi House Roundabout, Sikandra Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2309045,28.650845 ]
+    },
+    "properties": {
+    "S.No":34,
+    "Location_Road":"Chhatta Rail Chowk, SPM Marg / Nishad Raj Marg",
+    "Full_Location":"Chhatta Rail Chowk, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1373934,28.6677523 ]
+    },
+    "properties": {
+    "S.No":35,
+    "Location_Road":"Punjabi Bagh Bus Stand, Shiv Das Puri Marg",
+    "Full_Location":"Punjabi Bagh Bus Stand, Shiv Das Puri Marg, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1850079,28.7677797 ]
+    },
+    "properties": {
+    "S.No":36,
+    "Location_Road":"Loop Shastri Park, Shastri Park Road",
+    "Full_Location":"Shastri Park Loop Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1912485,28.598461 ]
+    },
+    "properties": {
+    "S.No":37,
+    "Location_Road":"Shanti Path â€“ Panchsheel Marg",
+    "Full_Location":"Shanti Path, Panchsheel Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1866189,28.589535 ]
+    },
+    "properties": {
+    "S.No":38,
+    "Location_Road":"Kautilya Marg to Panchsheel Marg, Shanti Path",
+    "Full_Location":"Shanti Path, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1869981,28.5967077 ]
+    },
+    "properties": {
+    "S.No":39,
+    "Location_Road":"Near American Embassy, Shanti Path",
+    "Full_Location":"American Embassy, Shanti Path, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2253432,28.6753019 ]
+    },
+    "properties": {
+    "S.No":40,
+    "Location_Road":"Near Kashmere Gate ISBT, Sham Nath Marg",
+    "Full_Location":"Kashmere Gate ISBT, Sham Nath Marg, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.22481,28.67734 ]
+    },
+    "properties": {
+    "S.No":41,
+    "Location_Road":"Civil Lines, Sham Nath Marg",
+    "Full_Location":"Civil Lines, Sham Nath Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1654017,28.7143597 ]
+    },
+    "properties": {
+    "S.No":42,
+    "Location_Road":"Y-Point, Shalimar Bagh Road",
+    "Full_Location":"Y-Point, Shalimar Bagh Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.11391,28.61067 ]
+    },
+    "properties": {
+    "S.No":43,
+    "Location_Road":"Foot of Janak Setu, Delhi Cantt side",
+    "Full_Location":"Janak Setu, Delhi Cantt, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2699371,28.6716399 ]
+    },
+    "properties": {
+    "S.No":44,
+    "Location_Road":"Seelampur Flyover, Seelampur Road",
+    "Full_Location":"Seelampur Flyover, Seelampur Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0597175,28.5607215 ]
+    },
+    "properties": {
+    "S.No":45,
+    "Location_Road":"Sector 22, Dwarka",
+    "Full_Location":"Sector 22, Dwarka, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.029572,28.6007474 ]
+    },
+    "properties": {
+    "S.No":46,
+    "Location_Road":"Near Metro Pillar 950A, Vegas Mall, Sector 14 Dwarka",
+    "Full_Location":"Vegas Mall, Sector 14 Dwarka, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.029572,28.6007474 ]
+    },
+    "properties": {
+    "S.No":47,
+    "Location_Road":"Radisson Blu to Vegas Mall Roundabout, Dwarka",
+    "Full_Location":"Radisson Blu Dwarka to Vegas Mall, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0259125,28.6022415 ]
+    },
+    "properties": {
+    "S.No":48,
+    "Location_Road":"Adjacent Dwarka Sector 14 Metro Station",
+    "Full_Location":"Dwarka Sector 14 Metro Station, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0290995,28.6038371 ]
+    },
+    "properties": {
+    "S.No":49,
+    "Location_Road":"Near Metro Pillar 950A Roundabout, Sector 14 Dwarka",
+    "Full_Location":"Sector 14 Dwarka, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1688843,28.5871827 ]
+    },
+    "properties": {
+    "S.No":50,
+    "Location_Road":"Durga Bai South Campus, Satya Niketan Road",
+    "Full_Location":"Durga Bai South Campus, Satya Niketan Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1856,28.5872 ]
+    },
+    "properties": {
+    "S.No":51,
+    "Location_Road":"R/A Rail Museum, Satya Marg",
+    "Full_Location":"Rail Museum, Satya Marg, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1953328,28.589838 ]
+    },
+    "properties": {
+    "S.No":52,
+    "Location_Road":"Vinay Marg, Chanakyapuri",
+    "Full_Location":"Vinay Marg, Chanakyapuri, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1079938,28.6144273 ]
+    },
+    "properties": {
+    "S.No":53,
+    "Location_Road":"Lajwanti Chowk, Satguru Ram Singh Marg",
+    "Full_Location":"Lajwanti Chowk, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1963216,28.5772672 ]
+    },
+    "properties": {
+    "S.No":54,
+    "Location_Road":"Sarojini Nagar Market",
+    "Full_Location":"Sarojini Nagar Market, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1791665,28.6012464 ]
+    },
+    "properties": {
+    "S.No":55,
+    "Location_Road":"CHP-I SPM Service Road, Sardar Patel Marg",
+    "Full_Location":"SPM Service Road, Sardar Patel Marg, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1663551,28.5943656 ]
+    },
+    "properties": {
+    "S.No":56,
+    "Location_Road":"Taj Place to Dhaula Kuan, Sardar Patel Marg",
+    "Full_Location":"Dhaula Kuan, Sardar Patel Marg, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.196963,28.7565155 ]
+    },
+    "properties": {
+    "S.No":57,
+    "Location_Road":"Ekta Garden, Harijan Basti, Burari",
+    "Full_Location":"Ekta Garden, Burari, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1945761,28.7582155 ]
+    },
+    "properties": {
+    "S.No":58,
+    "Location_Road":"Near Shalimar Palace Banquet, Burari",
+    "Full_Location":"Shalimar Palace, Burari, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0689193,28.6832932 ]
+    },
+    "properties": {
+    "S.No":59,
+    "Location_Road":"Phase-I B Block, Mangolpuri",
+    "Full_Location":"Mangolpuri Phase-I, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.1777766,28.5939813 ]
+    },
+    "properties": {
+    "S.No":60,
+    "Location_Road":"Near Jesus and Mary College, San Martin Marg",
+    "Full_Location":"Jesus and Mary College, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2116589,28.5221428 ]
+    },
+    "properties": {
+    "S.No":61,
+    "Location_Road":"A-01 Block, Saket Road",
+    "Full_Location":"Saket Road, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.3499791,28.6083483 ]
+    },
+    "properties": {
+    "S.No":62,
+    "Location_Road":"Khora Chowk, Sai Hospital Road",
+    "Full_Location":"Khora Chowk, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2018606,28.6728686 ]
+    },
+    "properties": {
+    "S.No":63,
+    "Location_Road":"Opposite PS Subzi Mandi, Roshanara Road",
+    "Full_Location":"Roshanara Road, Delhi, India",
+    "Risk":"Medium"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0647939,28.6823278 ]
+    },
+    "properties": {
+    "S.No":64,
+    "Location_Road":"Near Metro Pillar 455, Nangloi, Rohtak Road",
+    "Full_Location":"Nangloi Metro, Rohtak Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0595143,28.681883 ]
+    },
+    "properties": {
+    "S.No":65,
+    "Location_Road":"In front of Lokesh Cinema, Rohtak Road",
+    "Full_Location":"Lokesh Cinema, Rohtak Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.044007,28.6822794 ]
+    },
+    "properties": {
+    "S.No":66,
+    "Location_Road":"Metro Pillar 422â€“427 / 485â€“515, Rajdhani Park, Rohtak Road",
+    "Full_Location":"Rajdhani Park Metro Station, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 76.9640989,28.6880203 ]
+    },
+    "properties": {
+    "S.No":67,
+    "Location_Road":"Mundka to Tikri Border, Rohtak Road",
+    "Full_Location":"Mundka to Tikri Border, Rohtak Road, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0598517,28.682127 ]
+    },
+    "properties": {
+    "S.No":68,
+    "Location_Road":"Nangloi to Mundka / Rajdhani Park stretch, Rohtak Road",
+    "Full_Location":"Rohtak Road, West Delhi, Delhi, India",
+    "Risk":"High"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.2243977,28.5777976 ]
+    },
+    "properties": {
+    "S.No":69,
+    "Location_Road":"Underpass Kasturba Nagar, Road No.57A",
+    "Full_Location":"Kasturba Nagar Underpass, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.3131943,28.6303431 ]
+    },
+    "properties": {
+    "S.No":70,
+    "Location_Road":"UTSAV Ground VVIP Entry Gate, Road No.57A",
+    "Full_Location":"UTSAV Ground, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.3048067,28.6290766 ]
+    },
+    "properties": {
+    "S.No":71,
+    "Location_Road":"Near DCP East Office, Road No.57",
+    "Full_Location":"IP Extension Road No.57, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.3113681,28.6311948 ]
+    },
+    "properties": {
+    "S.No":72,
+    "Location_Road":"Road No.57, IP Extension",
+    "Full_Location":"Road No.57, IP Extension, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0981743,28.6850198 ]
+    },
+    "properties": {
+    "S.No":73,
+    "Location_Road":"Mangolpuri Industrial Area, Road No.316",
+    "Full_Location":"Mangolpuri Industrial Area, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0506109,28.5768835 ]
+    },
+    "properties": {
+    "S.No":74,
+    "Location_Road":"Sector 19/20 Marble Market, Dwarka",
+    "Full_Location":"Marble Market, Dwarka Sector 19/20, Delhi, India",
+    "Risk":"Low"
+    }
+  },
+  {
+    "type": "Feature",
+    "geometry": {
+       "type": "Point",
+       "coordinates":  [ 77.0593246,28.5709273 ]
+    },
+    "properties": {
+    "S.No":75,
+    "Location_Road":"Sector 20, Dwarka",
+    "Full_Location":"Sector 20, Dwarka, Delhi, India",
+    "Risk":"Low"
+    }
+  }
+]
+}
