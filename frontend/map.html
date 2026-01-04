@@ -1006,6 +1006,7 @@ select:focus {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
+  const API_BASE_URL = "https://water-logging.onrender.com";
 let rainLevel = "Light";
 let geojsonLayer;
 let reportMode = false;
@@ -1824,19 +1825,24 @@ document.head.appendChild(style);
 // =====================
 async function loadReportsFromDB() {
   try {
-    const res = await fetch("http://localhost:5000/api/reports");
+    const res = await fetch(`${API_BASE_URL}/api/reports`);
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch reports");
+    }
+
     const reports = await res.json();
 
     reports.forEach(report => {
       const severityMap = {
-        low: "#fde68a",
-        medium: "#f97316",
-        high: "#dc2626"
+        LOW: "#fde68a",
+        MEDIUM: "#f97316",
+        HIGH: "#dc2626"
       };
 
       L.circleMarker([report.latitude, report.longitude], {
         radius: 10,
-        fillColor: severityMap[report.severity.toLowerCase()],
+        fillColor: severityMap[report.severity],
         fillOpacity: 0.9,
         color: "#ffffff",
         weight: 2
@@ -1848,11 +1854,13 @@ async function loadReportsFromDB() {
         Rain: ${report.rainIntensity}
       `);
     });
+
   } catch (err) {
     console.error("Failed to load reports from DB", err);
   }
 }
 
+// ✅ CALL FUNCTION AFTER MAP INITIALIZES
 loadReportsFromDB();
 </script>
 </body>
