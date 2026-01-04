@@ -5,7 +5,10 @@ const {
   getReports
 } = require("../controllers/report.controller");
 
+// GET all reports (public – for map)
 router.get("/", getReports);
+
+// CREATE report (protected)
 router.post("/", auth, createReport);
 
 module.exports = router;
