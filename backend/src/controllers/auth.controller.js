@@ -1,11 +1,11 @@
-const prisma = require("../db");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+import prisma from "../db.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 /**
  * POST /api/auth/login
  */
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
