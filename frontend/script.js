@@ -1,4 +1,6 @@
-fetch("http://localhost:5000/api/reports")
+const API_BASE_URL = "https://water-logging.onrender.com";
+fetch(`${API_BASE_URL}/api/reports`)
+
   .then(res => res.json())
   .then(data => {
     console.log("Reports from DB:", data);
