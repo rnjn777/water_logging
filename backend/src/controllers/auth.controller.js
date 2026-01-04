@@ -1,23 +1,47 @@
 const prisma = require("../db");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+/**
+ * POST /api/auth/login
+ */
 exports.login = async (req, res) => {
-  const { email } = req.body;
+  try {
+    const { email, password, role } = req.body;
 
-  // Fake login for demo
-  const user = await prisma.user.findFirst({
-    where: { email }
-  });
+    const user = await prisma.user.findFirst({
+      where: { email, role }
+    });
 
-  if (!user) {
-    return res.status(401).json({ message: "User not found" });
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        role: user.role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
-
-  const token = jwt.sign(
-    { userId: user.id },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  res.json({ token });
 };
