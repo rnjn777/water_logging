@@ -1,14 +1,18 @@
-const router = require("express").Router();
-const auth = require("../middleware/auth.middleware");
-const {
-  createReport,
-  getReports
-} = require("../controllers/report.controller");
+import express from "express";
+import { getReports, createReport } from "../controllers/report.controller.js";
+import auth from "../middleware/auth.middleware.js";
 
-// GET all reports (public – for map)
+const router = express.Router();
+
+// test route (keep this for now)
+router.get("/test", (req, res) => {
+  res.json({ message: "Reports route working ✅" });
+});
+
+// public route
 router.get("/", getReports);
 
-// CREATE report (protected)
+// protected route
 router.post("/", auth, createReport);
 
-module.exports = router;
+export default router; // ✅ THIS MUST EXIST
