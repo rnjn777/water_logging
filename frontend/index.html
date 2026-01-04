@@ -687,6 +687,7 @@ body {
 
 
 <script>
+const API_BASE_URL = "https://water-logging.onrender.com";
 /* ---------- POPUP CONTROL ---------- */
 function openUserLogin() {
   document.getElementById("userLoginPopup").style.display = "flex";
@@ -724,7 +725,7 @@ async function loginUser(role) {
     return;
   }
 
-  const res = await fetch("http://localhost:5000/api/auth/login", {
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password, role })
@@ -733,13 +734,12 @@ async function loginUser(role) {
   const data = await res.json();
 
   if (!res.ok) {
-    if (data.code === "USER_NOT_FOUND") {
-      openRegister();
-    } else {
-      alert(data.message || "Login failed");
-    }
+    alert(data.message || "Login failed");
     return;
   }
+
+  // ✅ STORE JWT TOKEN HERE
+  localStorage.setItem("token", data.token);
 
   alert("Login successful");
   window.location.href = "map.html";
@@ -756,16 +756,17 @@ async function registerUser() {
     return;
   }
 
-  const res = await fetch("http://localhost:5000/api/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name,
-      email,
-      password,
-      role: "USER"
-    })
-  });
+const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name,
+    email,
+    password,
+    role: "USER"
+  })
+});
+
 
   const data = await res.json();
 
@@ -781,11 +782,11 @@ async function loginAdmin() {
   const email = document.getElementById("adminEmail").value;
   const password = document.getElementById("adminPassword").value;
 
-  const res = await fetch("http://localhost:5000/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, role: "ADMIN" })
-  });
+const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password, role: "ADMIN" })
+});
 
   if (!res.ok) {
     alert("Admin login failed");
