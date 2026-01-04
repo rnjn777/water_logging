@@ -1,6 +1,9 @@
 import prisma from "../db.js";
 
-// GET all reports (for map)
+/**
+ * GET /api/reports
+ * Fetch all reports (for map display)
+ */
 export const getReports = async (req, res) => {
   try {
     const reports = await prisma.report.findMany({
@@ -8,15 +11,29 @@ export const getReports = async (req, res) => {
     });
     res.json(reports);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("GET REPORTS ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch reports" });
   }
 };
 
-// CREATE new report (from frontend)
+/**
+ * POST /api/reports
+ * Create new report
+ */
 export const createReport = async (req, res) => {
-  const { latitude, longitude, location, severity, rainIntensity } = req.body;
-
   try {
+    const { latitude, longitude, location, severity, rainIntensity } = req.body;
+
+    if (
+      latitude === undefined ||
+      longitude === undefined ||
+      !location ||
+      !severity ||
+      !rainIntensity
+    ) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     const report = await prisma.report.create({
       data: {
         latitude,
@@ -29,6 +46,7 @@ export const createReport = async (req, res) => {
 
     res.status(201).json(report);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("CREATE REPORT ERROR:", err);
+    res.status(500).json({ message: "Failed to create report" });
   }
 };
