@@ -7,19 +7,21 @@ const router = express.Router();
 /* REGISTER */
 router.post("/register", async (req, res) => {
   try {
-    console.log("➡️ Register hit");
-    console.log("BODY:", req.body);
-
     const { email, password, role, name } = req.body;
+
+    if (!["USER", "ADMIN"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
 
     const exists = await prisma.user.findFirst({
       where: { email, role }
     });
 
-    console.log("EXISTS:", exists);
+    if (exists) {
+      return res.status(409).json({ message: "User already exists" });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
-    console.log("HASHED OK");
 
     const user = await prisma.user.create({
       data: {
@@ -30,9 +32,6 @@ router.post("/register", async (req, res) => {
       }
     });
 
-
-    console.log("USER CREATED:", user);
-
     res.status(201).json({
       message: "Registration successful",
       user: {
@@ -42,11 +41,10 @@ router.post("/register", async (req, res) => {
       }
     });
   } catch (err) {
-    console.error("❌ REGISTER ERROR:", err);
+    console.error("REGISTER ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 /* LOGIN */
 router.post("/login", async (req, res) => {
@@ -58,7 +56,7 @@ router.post("/login", async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ code: "USER_NOT_FOUND" });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const valid = await bcrypt.compare(password, user.password);
