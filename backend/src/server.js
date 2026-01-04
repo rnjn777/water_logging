@@ -5,6 +5,7 @@ import express from "express";
 import cors from "cors";
 
 import authRoutes from "./routes/auth.routes.js";
+import reportRoutes from "./routes/report.routes.js"; // ✅ ADD THIS
 
 const app = express();
 
@@ -12,12 +13,13 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/reports", reportRoutes); // ✅ ADD THIS
 
 app.get("/", (req, res) => {
   res.send("Backend running 🚀");
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000; // ✅ IMPORTANT for Render
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
