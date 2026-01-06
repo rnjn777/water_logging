@@ -36,6 +36,168 @@ body {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   overflow: hidden;
 }
+/* ==============================
+   CRITICAL AREAS MODAL (FINAL)
+   ============================== */
+
+#modalContent {
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
+  width: 500px;
+  max-height: 75vh;
+  margin: 8vh auto;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;   /* 🔥 required for scroll */
+  overflow: hidden;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+}
+
+/* ==============================
+   MODAL HEADER
+   ============================== */
+
+.modal-header {
+  background: linear-gradient(135deg, #dc2626, #f97316);
+  padding: 24px;
+  text-align: center;
+  flex-shrink: 0; /* 🔥 keeps header fixed */
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+}
+
+.modal-subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ==============================
+   CRITICAL LIST (SCROLLABLE)
+   ============================== */
+
+#locationList {
+  flex: 1;                 /* 🔥 takes remaining space */
+  overflow-y: auto;        /* 🔥 enables scrolling */
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ==============================
+   CRITICAL ITEM CARD
+   ============================== */
+
+.critical-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: all 0.25s ease;
+  border: 2px solid transparent;
+}
+
+/* Hover interaction */
+.critical-item:hover {
+  transform: translateY(-2px);
+  border-color: #fecaca;
+  box-shadow: 0 14px 36px rgba(220, 38, 38, 0.25);
+}
+
+/* ==============================
+   RANK BADGE
+   ============================== */
+
+.critical-rank {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.5);
+}
+
+/* ==============================
+   LOCATION TEXT
+   ============================== */
+
+.critical-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+/* ==============================
+   TOP PRIORITY HIGHLIGHT
+   ============================== */
+
+.critical-item:first-child {
+  background: #fee2e2;
+  border: 2px solid #fca5a5;
+  animation: criticalPulse 2s infinite;
+}
+
+/* Pulse animation for #1 */
+@keyframes criticalPulse {
+  0% { box-shadow: 0 0 0 rgba(220,38,38,0.5); }
+  50% { box-shadow: 0 0 22px rgba(220,38,38,0.9); }
+  100% { box-shadow: 0 0 0 rgba(220,38,38,0.5); }
+}
+
+/* ==============================
+   SCROLLBAR STYLING
+   ============================== */
+
+#locationList::-webkit-scrollbar {
+  width: 6px;
+}
+
+#locationList::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #f87171, #dc2626);
+  border-radius: 10px;
+}
+
+#locationList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Pulse animation for #1 */
+@keyframes criticalPulse {
+  0% { box-shadow: 0 0 0 rgba(220,38,38,0.5); }
+  50% { box-shadow: 0 0 22px rgba(220,38,38,0.9); }
+  100% { box-shadow: 0 0 0 rgba(220,38,38,0.5); }
+}
+
+.critical-item:first-child {
+  animation: criticalPulse 2s infinite;
+}
+#locationList::-webkit-scrollbar {
+  width: 6px;
+}
+
+#locationList::-webkit-scrollbar-thumb {
+  background: #fca5a5;
+  border-radius: 6px;
+}
 
 /* ANIMATED BACKGROUND PATTERN */
 body::before {
@@ -603,6 +765,30 @@ let reportMarkers = [];
 function minutesSince(ts) {
   return (Date.now() - ts) / (1000 * 60);
 }
+function recomputeAllStats() {
+  stats = { high: 0, medium: 0, low: 0 };
+
+  // 1️⃣ GeoJSON (official)
+  if (geojsonData && geojsonData.features) {
+    geojsonData.features.forEach(f => {
+      const risk = String(f.properties?.Risk || '').toLowerCase();
+      if (stats[risk] !== undefined) stats[risk]++;
+    });
+  }
+
+  // 2️⃣ Approved user reports
+  const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
+  approved.forEach(r => {
+    const sev = String(r.severity || '').toLowerCase();
+    if (stats[sev] !== undefined) stats[sev]++;
+  });
+
+  // 3️⃣ Update UI
+  document.getElementById('highCount').textContent = stats.high;
+  document.getElementById('mediumCount').textContent = stats.medium;
+  document.getElementById('lowCount').textContent = stats.low;
+}
+
 function addPulsatingReportMarker(report) {
   const icon = L.divIcon({
     className: '',
@@ -826,68 +1012,80 @@ function removeImage(e) {
   document.getElementById('photoUploadArea').classList.remove('has-image');
 }
 
-function updateStats(data) {
-  stats = { high: 0, medium: 0, low: 0 };
-  data.features.forEach(f => {
-    const risk = f && f.properties && f.properties.Risk ? String(f.properties.Risk).toLowerCase().trim() : '';
-    if (stats[risk] !== undefined) stats[risk]++;
-  });
-  document.getElementById('highCount').textContent = stats.high;
-  document.getElementById('mediumCount').textContent = stats.medium;
-  document.getElementById('lowCount').textContent = stats.low;
-}
-
 fetch("data.geojson")
   .then(res => res.json())
   .then(data => {
 
-    updateStats(data);
-    priorityLocations = data.features.filter(f => f.properties.Risk === "High");
+    geojsonData = data; // ✅ global store
+
+    // ===============================
+    // CRITICAL FLOOD ZONES (TOP 5 UI)
+    // ===============================
+    priorityLocations = data.features.filter(
+      f => f.properties.Risk === "High"
+    );
 
     const list = document.getElementById("locationList");
-    priorityLocations.forEach((f, i) => {
+    list.innerHTML = "";
+
+    priorityLocations.slice(0, 5).forEach((f, i) => {
       const div = document.createElement("div");
-      div.className = "location-item";
-      div.innerHTML = `<span class="location-number">${i + 1}</span>${f.properties.Location_Road}`;
-      div.onclick = () => focusOnLocation(i);
+      div.className = "critical-item";
+
+      div.innerHTML = `
+        <div class="critical-rank">${i + 1}</div>
+        <div class="critical-text">${f.properties.Location_Road}</div>
+      `;
+
+      div.onclick = () => {
+        const [lng, lat] = f.geometry.coordinates;
+        map.setView([lat, lng], 16);
+      };
+
       list.appendChild(div);
     });
 
-geojsonLayer = L.geoJSON(data, {
-  pointToLayer: (f, latlng) =>
-    L.circleMarker(latlng, {
-      radius: getRadius(),
-      fillColor: getColor(f.properties.Risk),
-      fillOpacity: 0.85,
-      color: "#ffffff",
-      weight: 2
-    }),
-  onEachFeature: (f, layer) => {
-    layer.bindPopup(
-      `<div style="font-family: Inter, sans-serif; padding: 8px;">
-        <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">
-          ${f.properties.Location_Road}
-        </h4>
-        <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">
-          <span style="color: ${getColor(f.properties.Risk)}; font-weight: 800;">
-            ${f.properties.Risk}
-          </span> Risk Area
-        </p>
-      </div>`
-    );
-  }
-});
+    // ===============================
+    // GEOJSON MAP LAYER
+    // ===============================
+    geojsonLayer = L.geoJSON(data, {
+      pointToLayer: (f, latlng) =>
+        L.circleMarker(latlng, {
+          radius: getRadius(),
+          fillColor: getColor(f.properties.Risk),
+          fillOpacity: 0.85,
+          color: "#ffffff",
+          weight: 2
+        }),
+      onEachFeature: (f, layer) => {
+        layer.bindPopup(
+          `<div style="font-family: Inter, sans-serif; padding: 8px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">
+              ${f.properties.Location_Road}
+            </h4>
+            <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">
+              <span style="color: ${getColor(f.properties.Risk)}; font-weight: 800;">
+                ${f.properties.Risk}
+              </span> Risk Area
+            </p>
+          </div>`
+        );
+      }
+    });
 
-// ✅ ADD GEOJSON INTO LAYER GROUP (NOT MAP)
-geojsonLayerGroup.addLayer(geojsonLayer);
-geojsonLayerGroup.addTo(map);
+    geojsonLayerGroup.addLayer(geojsonLayer);
+    geojsonLayerGroup.addTo(map);
 
-
-    // Load and display approved user reports
+    // ===============================
+    // OTHER DATA SOURCES
+    // ===============================
     loadApprovedReports();
-
+    recomputeAllStats();
     updateLegend();
-  });
+    updateHeatmap();
+  })
+  .catch(err => console.error("GeoJSON load failed:", err));
+
 function loadApprovedReports() {
   const approvedLocations = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
 
@@ -965,15 +1163,8 @@ function loadApprovedReports() {
       { className: 'custom-popup' }
     );
 
-    const severityLower = report.severity?.toLowerCase();
-    if (stats[severityLower] !== undefined) {
-      stats[severityLower]++;
-    }
   });
 
-  document.getElementById('highCount').textContent = stats.high;
-  document.getElementById('mediumCount').textContent = stats.medium;
-  document.getElementById('lowCount').textContent = stats.low;
 }
 
 
@@ -1529,4 +1720,4 @@ header::after {
   100% { transform: translateX(100%); }
 }
 
-... (file continues identical to map.html except the two report buttons removed)
+
