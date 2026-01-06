@@ -881,6 +881,11 @@ select:focus {
   gap: 12px;
 }
 
+.rain-wave {
+  z-index: 999 !important;
+}
+
+
 .home-btn {
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
@@ -913,6 +918,41 @@ select:focus {
   text-align: center;
   color: white;
   z-index: 3000;
+}
+/* ===============================
+   🌧️ ANIMATED RAIN WAVES
+   =============================== */
+.rain-wave {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.7;
+  animation: rainWave 3s ease-out infinite;
+}
+
+.rain-low {
+  background: rgba(253, 230, 138, 0.4);
+}
+
+.rain-medium {
+  background: rgba(249, 115, 22, 0.45);
+}
+
+.rain-high {
+  background: rgba(220, 38, 38, 0.5);
+}
+
+@keyframes rainWave {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(5);
+    opacity: 0;
+  }
 }
 
 .spinner {
@@ -1157,6 +1197,8 @@ select:focus {
 
 <script>
   const API_BASE_URL = "https://water-logging.onrender.com";
+let rainWaveLayers = [];
+let rainWaveTimer = null;
 let rainLevel = "Light";
 let geojsonLayer;
 let reportMode = false;
@@ -1208,6 +1250,18 @@ let geojsonData = null;
 let serverReports = [];
 
 
+
+function startRainAnimation() {
+  if (rainWaveTimer) clearInterval(rainWaveTimer);
+
+  spawnRainWaves();
+
+  const interval =
+    rainLevel === 'Heavy' ? 3000 :
+    rainLevel === 'Moderate' ? 4500 : 6000;
+
+  rainWaveTimer = setInterval(spawnRainWaves, interval);
+}
 
 function severityToWeight(sev) {
   if (!sev) return 0.3;
@@ -1647,14 +1701,17 @@ priorityLocations.slice(0, 5).forEach((f, i) => {
 
 function setRain(level) {
   rainLevel = level;
+
   geojsonLayer.setStyle(f => ({
     fillColor: getColor(f.properties.Risk),
     radius: getRadius()
   }));
+
   updateLegend();
-  // increase heat intensity when rain changes
   updateHeatmap();
+  startRainAnimation(); // 🌧️ ADD THIS
 }
+
 
 function updateLegend() {
   document.querySelector(".low").style.background =
@@ -2086,6 +2143,8 @@ async function loadReportsFromDB() {
 
     recomputeAllStats(); // ✅ SINGLE SOURCE OF TRUTH
     updateHeatmap();
+    startRainAnimation();
+
 
   } catch (err) {
     console.error("Failed to load reports from DB", err);
