@@ -1313,13 +1313,21 @@ function updateHeatmap() {
 
 
 function toggleHeatmap(show) {
-  if (!heatLayer) return;
   if (show) {
-    if (!map.hasLayer(heatLayer)) heatLayer.addTo(map);
+    if (window.lowHeat && !map.hasLayer(window.lowHeat)) {
+      window.lowHeat.addTo(map);
+      window.mediumHeat.addTo(map);
+      window.highHeat.addTo(map);
+    }
   } else {
-    if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+    if (window.lowHeat && map.hasLayer(window.lowHeat)) {
+      map.removeLayer(window.lowHeat);
+      map.removeLayer(window.mediumHeat);
+      map.removeLayer(window.highHeat);
+    }
   }
 }
+
 function addPulsatingReportMarker(report) {
   const icon = L.divIcon({
     className: '',
