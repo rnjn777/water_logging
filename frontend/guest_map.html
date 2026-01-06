@@ -976,6 +976,24 @@ select:focus {
   0% { transform: scale(1); opacity: 0.6; }
   100% { transform: scale(2.6); opacity: 0; }
 }
+.locate-btn {
+  background: white;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  border: none;
+}
+
+.locate-btn:hover {
+  background: #eff6ff;
+}
+
 
 /* ===============================
    HIGH RISK (RED)
@@ -1310,6 +1328,55 @@ function updateHeatmap() {
   }
 }
 
+let tempUserMarker = null;
+
+function zoomToUserLocation() {
+  if (!navigator.geolocation) {
+    alert('Geolocation not supported');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      // Zoom map
+      map.setView([lat, lng], 16, { animate: true });
+
+      // 🔥 REMOVE old temp marker if exists
+      if (tempUserMarker) {
+        map.removeLayer(tempUserMarker);
+        tempUserMarker = null;
+      }
+
+      // ✅ TEMP marker (not stored)
+      tempUserMarker = L.circleMarker([lat, lng], {
+        radius: 10,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.9,
+        color: '#ffffff',
+        weight: 3
+      }).addTo(map);
+
+      // ⏱ AUTO REMOVE after 3 seconds
+      setTimeout(() => {
+        if (tempUserMarker) {
+          map.removeLayer(tempUserMarker);
+          tempUserMarker = null;
+        }
+      }, 3000);
+    },
+    () => {
+      alert('Location access denied');
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000
+    }
+  );
+}
+
 
 
 function toggleHeatmap(show) {
@@ -1454,6 +1521,23 @@ const map = L.map("map", {
 
 // Add zoom control to top right
 L.control.zoom({ position: 'topright' }).addTo(map);
+// 📍 Locate Me button (bottom-left)
+const locateControl = L.control({ position: 'bottomleft' });
+
+locateControl.onAdd = function () {
+  const btn = L.DomUtil.create('button', 'locate-btn');
+  btn.innerHTML = '📍';
+
+  L.DomEvent.on(btn, 'click', e => {
+    L.DomEvent.stopPropagation(e);
+    L.DomEvent.preventDefault(e);
+    zoomToUserLocation();
+  });
+
+  return btn;
+};
+
+locateControl.addTo(map);
 
 // Dark theme tile layer
 L.tileLayer(
