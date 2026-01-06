@@ -1217,6 +1217,20 @@ function severityToWeight(sev) {
   if (sev === 'medium') return 1.8;
   return 0.9; // low
 }
+function polygonCentroid(coords) {
+  // coords = [ [ [lng,lat], [lng,lat], ... ] ]
+  let latSum = 0, lngSum = 0, count = 0;
+
+  coords[0].forEach(([lng, lat]) => {
+    latSum += lat;
+    lngSum += lng;
+    count++;
+  });
+
+  return [latSum / count, lngSum / count];
+}
+
+
 
 function updateHeatmap() {
   const points = [];
@@ -1224,16 +1238,36 @@ function updateHeatmap() {
   // determine rain multiplier (heavier rain => stronger heat)
   const rainMul = rainLevel === 'Heavy' ? 2.0 : rainLevel === 'Moderate' ? 1.4 : 1.0;
 
-  if (geojsonData && geojsonData.features) {
-    geojsonData.features.forEach(f => {
-      if (!f.geometry || !f.geometry.coordinates) return;
-      const coords = f.geometry.coordinates;
-      const lng = coords[0], lat = coords[1];
-      const base = severityToWeight(f.properties?.Risk);
-      const w = Math.max(0.2, base) * rainMul;
+if (geojsonData && geojsonData.features) {
+  geojsonData.features.forEach(f => {
+    if (!f.geometry) return;
+
+    const base = severityToWeight(f.properties?.Risk);
+    const w = Math.max(0.2, base) * rainMul;
+
+    // ✅ POINT
+    if (f.geometry.type === "Point") {
+      const [lng, lat] = f.geometry.coordinates;
       points.push([lat, lng, w]);
-    });
-  }
+    }
+
+    // ✅ POLYGON
+    else if (f.geometry.type === "Polygon") {
+      const [lat, lng] = polygonCentroid(f.geometry.coordinates);
+      points.push([lat, lng, w]);
+    }
+
+    // ✅ MULTIPOLYGON
+    else if (f.geometry.type === "MultiPolygon") {
+      f.geometry.coordinates.forEach(poly => {
+        const [lat, lng] = polygonCentroid(poly);
+        points.push([lat, lng, w]);
+      });
+    }
+  });
+}
+
+
 
   const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
   approved.forEach(r => {
@@ -1285,19 +1319,18 @@ function updateHeatmap() {
 
   if (points.length > 0) {
     // deeper color ramp, larger radius/blur, and higher max intensity
-    heatLayer = L.heatLayer(points, {
-      radius: 120,
-      blur: 100,
-      maxZoom: 18,
-      max: 3,
-      minOpacity: 0.15,
-      gradient: {
-        0.2: '#ffefc2',
-        0.45: '#f97316',
-        0.75: '#ff7a18',
-        1: '#b91c1c'
-      }
-    });
+heatLayer = L.heatLayer(points, {
+  radius: 45,
+  blur: 30,
+  maxZoom: 17,
+  minOpacity: 0.2,
+  gradient: {
+    0.2: '#fde68a',
+    0.5: '#f97316',
+    1.0: '#dc2626'
+  }
+});
+
     const toggle = document.getElementById('heatToggle');
     if (!toggle || toggle.checked) {
       heatLayer.addTo(map);
