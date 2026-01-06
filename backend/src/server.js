@@ -19,7 +19,7 @@ app.get("/", (req, res) => {
   res.send("Backend running 🚀");
 });
 
-const PORT = process.env.PORT || 5000; // ✅ IMPORTANT for Render
+const PORT = process.env.PORT || 5001; // ✅ IMPORTANT for Render
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

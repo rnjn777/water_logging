@@ -1,18 +1,24 @@
 import express from "express";
-import { getReports, createReport } from "../controllers/report.controller.js";
-import auth from "../middleware/auth.middleware.js";
+import auth, { isAdmin } from "../middleware/auth.middleware.js";
+import {
+  getReports,
+  createReport,
+  approveReport,
+  deleteRejectedReports
+} from "../controllers/report.controller.js";
 
 const router = express.Router();
 
-// test route (keep this for now)
-router.get("/test", (req, res) => {
-  res.json({ message: "Reports route working ✅" });
-});
+// public (map) - now with optional auth
+router.get("/", auth, getReports);
 
-// public route
-router.get("/", getReports);
-
-// protected route
+// protected (user submit)
 router.post("/", auth, createReport);
 
-export default router; // ✅ THIS MUST EXIST
+// admin approve
+router.patch("/:reportId/approve", auth, isAdmin, approveReport);
+
+// admin delete rejected
+router.delete("/rejected", auth, isAdmin, deleteRejectedReports);
+
+export default router;
