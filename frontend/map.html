@@ -1045,9 +1045,9 @@ select:focus {
     <label>🔥 Flood Heatmap:</label>
     <input type="checkbox" id="heatToggle" onchange="toggleHeatmap(this.checked)" checked />
   </div>
-
-  <button id="reportBtn" class="report-btn" onclick="enableReportMode()">➕ Report Waterlogging</button>
+<button id="reportBtn" class="report-btn" onclick="enableReportMode()">➕ Report Waterlogging</button>
   <button id="reportMyLocationBtn" class="report-btn" onclick="reportCurrentLocation()" style="background: linear-gradient(135deg, #10b981, #059669);">📍 Report My Location</button>
+  
 </div>
 
 <div class="map-wrapper">
@@ -1210,140 +1210,108 @@ let serverReports = [];
 
 
 function severityToWeight(sev) {
-  // deeper intensity: larger base weights to increase contrast
-  if (!sev) return 0.9;
-  sev = (sev + '').toLowerCase();
-  if (sev === 'high') return 3.0;
-  if (sev === 'medium') return 1.8;
-  return 0.9; // low
-}
-function polygonCentroid(coords) {
-  // coords = [ [ [lng,lat], [lng,lat], ... ] ]
-  let latSum = 0, lngSum = 0, count = 0;
+  if (!sev) return 0.3;
+  sev = sev.toLowerCase();
 
-  coords[0].forEach(([lng, lat]) => {
-    latSum += lat;
-    lngSum += lng;
-    count++;
+  if (sev === 'high') return 1.0;     // 🔴 red
+  if (sev === 'medium') return 0.6;   // 🟠 orange
+  return 0.3;                         // 🟡 yellow
+}
+
+function polygonCentroid(coords) {
+  let lat = 0, lng = 0, n = 0;
+
+  coords[0].forEach(([x, y]) => {
+    lng += x;
+    lat += y;
+    n++;
   });
 
-  return [latSum / count, lngSum / count];
+  return [lat / n, lng / n];
 }
-
 
 
 function updateHeatmap() {
-  const points = [];
+  const low = [];
+  const medium = [];
+  const high = [];
 
-  // determine rain multiplier (heavier rain => stronger heat)
-  const rainMul = rainLevel === 'Heavy' ? 2.0 : rainLevel === 'Moderate' ? 1.4 : 1.0;
+  const rainMul =
+    rainLevel === 'Heavy' ? 1.3 :
+    rainLevel === 'Moderate' ? 1.1 : 1.0;
 
-if (geojsonData && geojsonData.features) {
-  geojsonData.features.forEach(f => {
+  function addPoint(lat, lng, risk) {
+    if (risk === 'high') high.push([lat, lng, 1.0 * rainMul]);
+    else if (risk === 'medium') medium.push([lat, lng, 0.8 * rainMul]);
+    else low.push([lat, lng, 0.5 * rainMul]);
+  }
+
+  // GEOJSON
+  geojsonData?.features?.forEach(f => {
     if (!f.geometry) return;
+    const risk = f.properties?.Risk?.toLowerCase() || 'low';
 
-    const base = severityToWeight(f.properties?.Risk);
-    const w = Math.max(0.2, base) * rainMul;
-
-    // ✅ POINT
     if (f.geometry.type === "Point") {
       const [lng, lat] = f.geometry.coordinates;
-      points.push([lat, lng, w]);
-    }
-
-    // ✅ POLYGON
+      addPoint(lat, lng, risk);
+    } 
     else if (f.geometry.type === "Polygon") {
       const [lat, lng] = polygonCentroid(f.geometry.coordinates);
-      points.push([lat, lng, w]);
+      addPoint(lat, lng, risk);
     }
-
-    // ✅ MULTIPOLYGON
     else if (f.geometry.type === "MultiPolygon") {
-      f.geometry.coordinates.forEach(poly => {
-        const [lat, lng] = polygonCentroid(poly);
-        points.push([lat, lng, w]);
+      f.geometry.coordinates.forEach(p => {
+        const [lat, lng] = polygonCentroid(p);
+        addPoint(lat, lng, risk);
       });
     }
   });
-}
 
-
-
-  const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
-  approved.forEach(r => {
-    if (r.lat != null && r.lng != null) {
-      points.push([r.lat, r.lng, Math.max(0.2, severityToWeight(r.severity)) * 2.5]);
-    }
-  });
-
+  // SERVER REPORTS
   (serverReports || []).forEach(r => {
     const lat = r.latitude ?? r.lat;
     const lng = r.longitude ?? r.lng;
     if (lat == null || lng == null) return;
-    points.push([lat, lng, Math.max(0.2, severityToWeight(r.severity)) * 2.5]);
+    addPoint(lat, lng, r.severity?.toLowerCase());
   });
 
-  if (heatLayer) {
-    try { map.removeLayer(heatLayer); } catch(e) {}
-    heatLayer = null;
-  }
+  // 🔥 REMOVE OLD LAYERS
+  if (window.lowHeat) map.removeLayer(window.lowHeat);
+  if (window.mediumHeat) map.removeLayer(window.mediumHeat);
+  if (window.highHeat) map.removeLayer(window.highHeat);
 
-  console.debug('Heatmap points:', points.length);
+  // 🟡 LOW
+  window.lowHeat = L.heatLayer(low, {
+    radius: 45,
+    blur: 30,
+    minOpacity: 0.3,
+    gradient: { 0.0: '#fde68a', 1.0: '#fde68a' }
+  });
 
-  if (points.length === 0) {
-    const geoCount = (geojsonData && geojsonData.features) ? geojsonData.features.length : 0;
-    const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
-    const serverCount = (serverReports || []).length;
-    console.warn('No heatmap points', { geojsonFeatures: geoCount, approvedCount: approved.length, serverReports: serverCount });
-    // Dump first few items for debugging
-    if (geoCount > 0) console.debug('First geo feature', geojsonData.features[0]);
-      if (approved.length > 0) console.debug('First approved', approved[0]);
-    if (serverReports.length > 0) console.debug('First server report', serverReports[0]);
+  // 🟠 MEDIUM
+  window.mediumHeat = L.heatLayer(medium, {
+    radius: 50,
+    blur: 35,
+    minOpacity: 0.4,
+    gradient: { 0.0: '#f97316', 1.0: '#f97316' }
+  });
 
-    // Fallback: try extracting from geojsonLayer if present (some builds store coords differently)
-    try {
-      if (geojsonLayer) {
-        geojsonLayer.eachLayer(layer => {
-          if (layer && typeof layer.getLatLng === 'function') {
-            const ll = layer.getLatLng();
-            const props = layer.feature && layer.feature.properties ? layer.feature.properties : {};
-            const base = severityToWeight(props.Risk);
-            const w = Math.max(0.2, base) * rainMul;
-            points.push([ll.lat, ll.lng, w]);
-          }
-        });
-        if (points.length > 0) console.debug('Recovered heat points from geojsonLayer:', points.length);
-      }
-    } catch (e) { console.warn('Fallback geojsonLayer extraction failed', e); }
-  }
+  // 🔴 HIGH
+  window.highHeat = L.heatLayer(high, {
+    radius: 55,
+    blur: 40,
+    minOpacity: 0.5,
+    gradient: { 0.0: '#dc2626', 1.0: '#dc2626' }
+  });
 
-  if (points.length > 0) {
-    // deeper color ramp, larger radius/blur, and higher max intensity
-heatLayer = L.heatLayer(points, {
-  radius: 45,
-  blur: 30,
-  maxZoom: 17,
-  minOpacity: 0.2,
-  gradient: {
-    0.2: '#fde68a',
-    0.5: '#f97316',
-    1.0: '#dc2626'
-  }
-});
-
-    const toggle = document.getElementById('heatToggle');
-    if (!toggle || toggle.checked) {
-      heatLayer.addTo(map);
-      // Ensure canvas opacity is visible
-      setTimeout(() => {
-        try {
-          const c = heatLayer._canvas || (heatLayer._container && heatLayer._container.querySelector('canvas'));
-          if (c) c.style.opacity = '0.98';
-        } catch(e) { console.warn('Failed to set heat canvas opacity', e); }
-      }, 50);
-    }
+  if (document.getElementById('heatToggle')?.checked !== false) {
+    lowHeat.addTo(map);
+    mediumHeat.addTo(map);
+    highHeat.addTo(map);
   }
 }
+
+
 
 function toggleHeatmap(show) {
   if (!heatLayer) return;
