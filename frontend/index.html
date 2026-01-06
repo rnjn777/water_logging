@@ -315,6 +315,18 @@ body {
   box-shadow: 0 12px 32px rgba(220, 38, 38, 0.6);
 }
 
+.guest-login {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+}
+
+.guest-login:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.55);
+}
+
 .btn-icon {
   font-size: 24px;
 }
@@ -542,6 +554,7 @@ body {
       <a href="#about">About</a>
       <a href="#stats">Statistics</a>
       <a href="#contact">Contact</a>
+      <a href="guest_map.html">Guest Mode</a>
     </div>
   </div>
 </nav>
@@ -591,6 +604,11 @@ body {
       <button class="login-btn admin-login" onclick="openAdminLogin()">
         <span class="btn-icon">🔐</span>
         <span>Admin Login</span>
+      </button>
+
+      <button class="login-btn guest-login" onclick="window.location.href='guest_map.html'">
+        <span class="btn-icon">👥</span>
+        <span>Guest Mode</span>
       </button>
 
     </div>
