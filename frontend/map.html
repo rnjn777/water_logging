@@ -897,8 +897,13 @@ select:focus {
     </select>
   </div>
 
-  <button class="report-btn" onclick="enableReportMode()">➕ Report Waterlogging</button>
-  <button class="report-btn" onclick="reportCurrentLocation()" style="background: linear-gradient(135deg, #10b981, #059669);">📍 Report My Location</button>
+  <div class="control-group">
+    <label>🔥 Flood Heatmap:</label>
+    <input type="checkbox" id="heatToggle" onchange="toggleHeatmap(this.checked)" checked />
+  </div>
+
+  <button id="reportBtn" class="report-btn" onclick="enableReportMode()">➕ Report Waterlogging</button>
+  <button id="reportMyLocationBtn" class="report-btn" onclick="reportCurrentLocation()" style="background: linear-gradient(135deg, #10b981, #059669);">📍 Report My Location</button>
 </div>
 
 <div class="map-wrapper">
@@ -1007,37 +1012,137 @@ select:focus {
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
 <script>
-  
-const API_BASE_URL = "https://water-logging.onrender.com";
-
+  const API_BASE_URL = "https://water-logging.onrender.com";
 let rainLevel = "Light";
-
-// ===============================
-// OVERLAY LAYERS (DECLARE ONCE)
-// ===============================
-let layerControl = null;
-let markerLayer = L.layerGroup();        // Exact location markers
-let heatLayer = null;                    // Heatmap (created later)
-let heatLayerGroup = L.layerGroup();     // Wrapper for heatmap
-let geojsonLayer = null;                 // GeoJSON layer
-let geojsonLayerGroup = L.layerGroup();  // Wrapper for GeoJSON
-
-// ❌ DO NOT add heatLayer here (it is null now)
-// heatLayerGroup.addLayer(heatLayer); ❌ REMOVE THIS
-
+let geojsonLayer;
+let reportMode = false;
 let priorityLocations = [];
 let stats = { high: 0, medium: 0, low: 0 };
-
+let currentReportLocation = null;
+let currentReportImage = null;
 let currentReportLatLng = null;
 let currentReportImageBase64 = null;
-
 const REPORT_EXPIRY_MINUTES = 60;
 let reportMarkers = [];
-
 function minutesSince(ts) {
   return (Date.now() - ts) / (1000 * 60);
 }
 
+let heatLayer = null;
+let geojsonData = null;
+let serverReports = [];
+
+function severityToWeight(sev) {
+  // deeper intensity: larger base weights to increase contrast
+  if (!sev) return 0.9;
+  sev = (sev + '').toLowerCase();
+  if (sev === 'high') return 3.0;
+  if (sev === 'medium') return 1.8;
+  return 0.9; // low
+}
+
+function updateHeatmap() {
+  const points = [];
+
+  // determine rain multiplier (heavier rain => stronger heat)
+  const rainMul = rainLevel === 'Heavy' ? 2.0 : rainLevel === 'Moderate' ? 1.4 : 1.0;
+
+  if (geojsonData && geojsonData.features) {
+    geojsonData.features.forEach(f => {
+      if (!f.geometry || !f.geometry.coordinates) return;
+      const coords = f.geometry.coordinates;
+      const lng = coords[0], lat = coords[1];
+      const base = severityToWeight(f.properties?.Risk);
+      const w = Math.max(0.2, base) * rainMul;
+      points.push([lat, lng, w]);
+    });
+  }
+
+  const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
+  approved.forEach(r => {
+    if (r.lat != null && r.lng != null) {
+      points.push([r.lat, r.lng, Math.max(0.2, severityToWeight(r.severity)) * 2.5]);
+    }
+  });
+
+  (serverReports || []).forEach(r => {
+    const lat = r.latitude ?? r.lat;
+    const lng = r.longitude ?? r.lng;
+    if (lat == null || lng == null) return;
+    points.push([lat, lng, Math.max(0.2, severityToWeight(r.severity)) * 2.5]);
+  });
+
+  if (heatLayer) {
+    try { map.removeLayer(heatLayer); } catch(e) {}
+    heatLayer = null;
+  }
+
+  console.debug('Heatmap points:', points.length);
+
+  if (points.length === 0) {
+    const geoCount = (geojsonData && geojsonData.features) ? geojsonData.features.length : 0;
+    const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
+    const serverCount = (serverReports || []).length;
+    console.warn('No heatmap points', { geojsonFeatures: geoCount, approvedCount: approved.length, serverReports: serverCount });
+    // Dump first few items for debugging
+    if (geoCount > 0) console.debug('First geo feature', geojsonData.features[0]);
+      if (approved.length > 0) console.debug('First approved', approved[0]);
+    if (serverReports.length > 0) console.debug('First server report', serverReports[0]);
+
+    // Fallback: try extracting from geojsonLayer if present (some builds store coords differently)
+    try {
+      if (geojsonLayer) {
+        geojsonLayer.eachLayer(layer => {
+          if (layer && typeof layer.getLatLng === 'function') {
+            const ll = layer.getLatLng();
+            const props = layer.feature && layer.feature.properties ? layer.feature.properties : {};
+            const base = severityToWeight(props.Risk);
+            const w = Math.max(0.2, base) * rainMul;
+            points.push([ll.lat, ll.lng, w]);
+          }
+        });
+        if (points.length > 0) console.debug('Recovered heat points from geojsonLayer:', points.length);
+      }
+    } catch (e) { console.warn('Fallback geojsonLayer extraction failed', e); }
+  }
+
+  if (points.length > 0) {
+    // deeper color ramp, larger radius/blur, and higher max intensity
+    heatLayer = L.heatLayer(points, {
+      radius: 120,
+      blur: 100,
+      maxZoom: 18,
+      max: 3,
+      minOpacity: 0.15,
+      gradient: {
+        0.2: '#ffefc2',
+        0.45: '#f97316',
+        0.75: '#ff7a18',
+        1: '#b91c1c'
+      }
+    });
+    const toggle = document.getElementById('heatToggle');
+    if (!toggle || toggle.checked) {
+      heatLayer.addTo(map);
+      // Ensure canvas opacity is visible
+      setTimeout(() => {
+        try {
+          const c = heatLayer._canvas || (heatLayer._container && heatLayer._container.querySelector('canvas'));
+          if (c) c.style.opacity = '0.98';
+        } catch(e) { console.warn('Failed to set heat canvas opacity', e); }
+      }, 50);
+    }
+  }
+}
+
+function toggleHeatmap(show) {
+  if (!heatLayer) return;
+  if (show) {
+    if (!map.hasLayer(heatLayer)) heatLayer.addTo(map);
+  } else {
+    if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+  }
+}
 function addPulsatingReportMarker(report) {
   const icon = L.divIcon({
     className: '',
@@ -1045,7 +1150,7 @@ function addPulsatingReportMarker(report) {
     iconSize: [16, 16]
   });
 
-  const marker = L.marker([report.lat, report.lng], { icon }).addTo(markerLayer);
+  const marker = L.marker([report.lat, report.lng], { icon }).addTo(map);
 
   reportMarkers.push({
     marker,
@@ -1165,20 +1270,14 @@ const map = L.map("map", {
 // Add zoom control to top right
 L.control.zoom({ position: 'topright' }).addTo(map);
 
+// Dark theme tile layer
 L.tileLayer(
   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-  { maxZoom: 19 }
+  { 
+    attribution: "© OpenStreetMap © CARTO",
+    maxZoom: 19
+  }
 ).addTo(map);
-markerLayer.addTo(map);
-layerControl = L.control.layers(null, {
-  "📍 Verified User Reports": markerLayer,
-  "🗺️ Official Risk Zones": geojsonLayerGroup,
-  "🔥 Flood Heatmap": heatLayerGroup
-}, { collapsed: false }).addTo(map);
-
-// 👇 IMPORTANT: allow toggle to work
-heatLayerGroup.addTo(map);
-
 
 function getColor(risk) {
   if (rainLevel === "Heavy") return "#dc2626";
@@ -1281,11 +1380,16 @@ function removeImage(e) {
 }
 
 function updateStats(data) {
+  // Start with geojson counts
   stats = { high: 0, medium: 0, low: 0 };
   data.features.forEach(f => {
-    const risk = f && f.properties && f.properties.Risk ? String(f.properties.Risk).toLowerCase().trim() : '';
+    const risk = (f.properties.Risk || '').toLowerCase();
     if (stats[risk] !== undefined) stats[risk]++;
   });
+  updateStatsDisplay();
+}
+
+function updateStatsDisplay() {
   document.getElementById('highCount').textContent = stats.high;
   document.getElementById('mediumCount').textContent = stats.medium;
   document.getElementById('lowCount').textContent = stats.low;
@@ -1297,6 +1401,7 @@ fetch("data.geojson")
 
     updateStats(data);
     priorityLocations = data.features.filter(f => f.properties.Risk === "High");
+    geojsonData = data;
 
     const list = document.getElementById("locationList");
     priorityLocations.forEach((f, i) => {
@@ -1307,39 +1412,40 @@ fetch("data.geojson")
       list.appendChild(div);
     });
 
-geojsonLayer = L.geoJSON(data, {
-  pointToLayer: (f, latlng) =>
-    L.circleMarker(latlng, {
-      radius: getRadius(),
-      fillColor: getColor(f.properties.Risk),
-      fillOpacity: 0.85,
-      color: "#ffffff",
-      weight: 2
-    }),
-  onEachFeature: (f, layer) => {
-    layer.bindPopup(`
-      <div style="font-family: Inter, sans-serif; padding: 8px;">
-        <h4 style="margin: 0 0 8px 0;">${f.properties.Location_Road}</h4>
-        <p><strong>${f.properties.Risk}</strong> Risk Area</p>
-      </div>
-    `);
-  }
-});
-
-geojsonLayerGroup.addLayer(geojsonLayer);
-geojsonLayerGroup.addTo(map); // default ON
-
+    geojsonLayer = L.geoJSON(data, {
+      pointToLayer: (f, latlng) =>
+        L.circleMarker(latlng, {
+          radius: getRadius(),
+          fillColor: getColor(f.properties.Risk),
+          fillOpacity: 0.85,
+          color: "#ffffff",
+          weight: 2
+        }),
+      onEachFeature: (f, layer) => {
+        layer.bindPopup(
+          `<div style="font-family: Inter, sans-serif; padding: 8px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b; font-size: 16px; font-weight: 700;">${f.properties.Location_Road}</h4>
+            <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">
+              <span style="color: ${getColor(f.properties.Risk)}; font-weight: 800;">${f.properties.Risk}</span> Risk Area
+            </p>
+          </div>`,
+          { className: 'custom-popup' }
+        );
+      }
+    }).addTo(map);
 
     // Load and display approved user reports
     loadApprovedReports();
 
     updateLegend();
+    // Update heatmap after layers and approved reports are loaded
+    updateHeatmap();
   });
 function loadApprovedReports() {
   const approvedLocations = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
 
-  // NOTE: Do NOT reset `stats` here — keep counts aggregated from the
-  // GeoJSON (`updateStats`) and only add approved user reports on top.
+  // ✅ RESET STATS
+  stats = { high: 0, medium: 0, low: 0 };
 
   approvedLocations.forEach(report => {
 
@@ -1378,7 +1484,7 @@ function loadApprovedReports() {
         iconSize: [16, 16]
       });
 
-      marker = L.marker([report.lat, report.lng], { icon }).addTo(markerLayer);
+      marker = L.marker([report.lat, report.lng], { icon }).addTo(map);
 
       reportMarkers.push({
         marker,
@@ -1396,7 +1502,7 @@ function loadApprovedReports() {
         fillOpacity: 0.85,
         color: "#ffffff",
         weight: 2
-      }).addTo(markerLayer);
+      }).addTo(map);
     }
 
     /* ===============================
@@ -1437,9 +1543,8 @@ function loadApprovedReports() {
   /* ===============================
      UPDATE STATS DISPLAY
      =============================== */
-  document.getElementById('highCount').textContent = stats.high;
-  document.getElementById('mediumCount').textContent = stats.medium;
-  document.getElementById('lowCount').textContent = stats.low;
+  updateStatsDisplay();
+  updateHeatmap();
 }
 
 
@@ -1451,6 +1556,8 @@ function setRain(level) {
     radius: getRadius()
   }));
   updateLegend();
+  // increase heat intensity when rain changes
+  updateHeatmap();
 }
 
 function updateLegend() {
@@ -1517,7 +1624,7 @@ const report = {
     color: '#ffffff',
     weight: 3,
     dashArray: '5,5'
-  }).addTo(markerLayer);
+  }).addTo(map);
 
   closeReportModal();
   showSuccessModal('Report Submitted', 'Your waterlogging report has been submitted successfully!');
@@ -1781,7 +1888,7 @@ function focusOnLocation(index) {
       fillOpacity: 0.9,
       color: "#ffffff",
       weight: 3
-    }).addTo(markerLayer)
+    }).addTo(map)
       .bindPopup(
         `<div style="font-family: Inter, sans-serif; padding: 12px;">
           <h3 style="margin: 0 0 8px 0; color: #dc2626; font-size: 18px; font-weight: 800;">🚨 CRITICAL ZONE</h3>
@@ -1848,44 +1955,45 @@ document.head.appendChild(style);
 // LOAD REPORTS FROM DB
 // =====================
 async function loadReportsFromDB() {
-  const res = await fetch(`${API_BASE_URL}/api/reports`);
-  const reports = await res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/reports`);
 
-  heatLayerGroup.clearLayers();
-
-  const heatPoints = [];
-
-  reports.forEach(r => {
-    const lat = Number(r.lat);
-    const lng = Number(r.lng);
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    const sev = r.severity?.toLowerCase();
-    const weight =
-      sev === "high" ? 1.0 :
-      sev === "medium" ? 0.6 : 0.3;
-
-    heatPoints.push([lat, lng, weight]);
-  });
-
-  if (!heatPoints.length) {
-    console.warn("❌ No heatmap points");
-    return;
-  }
-
-  heatLayer = L.heatLayer(heatPoints, {
-    radius: 40,
-    blur: 30,
-    minOpacity: 0.45,
-    maxZoom: 17,
-    gradient: {
-      0.2: "#fde68a",
-      0.5: "#f97316",
-      1.0: "#dc2626"
+    if (!res.ok) {
+      throw new Error("Failed to fetch reports");
     }
-  });
 
-  heatLayerGroup.addLayer(heatLayer);
+    const reports = await res.json();
+
+    reports.forEach(report => {
+      const severityMap = {
+        LOW: "#fde68a",
+        MEDIUM: "#f97316",
+        HIGH: "#dc2626"
+      };
+
+      L.circleMarker([report.latitude, report.longitude], {
+        radius: 10,
+        fillColor: severityMap[report.severity],
+        fillOpacity: 0.9,
+        color: "#ffffff",
+        weight: 2
+      })
+      .addTo(map)
+      .bindPopup(`
+        <strong>${report.location}</strong><br/>
+        Severity: ${report.severity}<br/>
+        Rain: ${report.rainIntensity}
+      `);
+    });
+
+    // Store server reports for heatmap and refresh displays
+    serverReports = reports;
+    updateStatsDisplay();
+    updateHeatmap();
+
+  } catch (err) {
+    console.error("Failed to load reports from DB", err);
+  }
 }
 
 // ✅ CALL FUNCTION AFTER MAP INITIALIZES
