@@ -1813,24 +1813,32 @@ function updateLegend() {
 
   document.querySelector(".high").style.background = "#dc2626";
 }
-
 async function submitReport() {
   if (!currentReportLatLng) {
-    showWarningModal("Error", "Select location first");
+    showWarningModal("Error", "Please select a location first");
+    return;
+  }
+
+  const locationName = document.getElementById("reportLocationName").value.trim();
+  const severity = document.getElementById("severitySelect").value.toLowerCase();
+
+  if (!locationName) {
+    showWarningModal("Missing Info", "Enter location name");
     return;
   }
 
   const token = localStorage.getItem("token");
+
   if (!token) {
-    showWarningModal("Login required", "Please login");
+    showWarningModal("Login Required", "Please login first");
     return;
   }
 
   const payload = {
     latitude: Number(currentReportLatLng.lat),
     longitude: Number(currentReportLatLng.lng),
-    location: document.getElementById("reportLocationName").value.trim(),
-    severity: document.getElementById("severitySelect").value.toLowerCase(),
+    location: locationName,
+    severity,
     rainIntensity: "medium"
   };
 
@@ -1846,12 +1854,15 @@ async function submitReport() {
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.message);
+    if (!res.ok) {
+      throw new Error(data.message || "Submit failed");
+    }
 
-    showSuccessModal("Submitted", "Pending admin approval");
+    showSuccessModal("Success", "Report submitted successfully");
     closeReportModal();
-    loadReportsFromDB();
+    loadReportsFromDB(); // refresh map
   } catch (err) {
+    console.error(err);
     showWarningModal("Error", err.message);
   }
 }
