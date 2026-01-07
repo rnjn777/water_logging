@@ -74,19 +74,14 @@ export const approveReport = async (req, res) => {
  */
 export const getReports = async (req, res) => {
   try {
-    const isAdmin = req.user?.role === "ADMIN";
-    console.log("req.user:", req.user);
-    console.log("Fetching reports, isAdmin:", isAdmin);
+    const isAdmin = req.user && req.user.role === "ADMIN";
 
-    const where = isAdmin
-      ? {}
-      : { is_approved: true }; // 🔐 PUBLIC SAFETY
+    const where = isAdmin ? {} : { is_approved: true };
 
     const reports = await prisma.report.findMany({
       where,
       orderBy: { createdAt: "desc" }
     });
-    console.log("Reports fetched, count:", reports.length);
 
     res.json(reports);
   } catch (err) {
