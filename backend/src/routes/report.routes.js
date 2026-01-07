@@ -2,6 +2,7 @@ import express from "express";
 import auth, { isAdmin } from "../middleware/auth.middleware.js";
 import {
   getReports,
+  getAllReportsAdmin,
   createReport,
   approveReport,
   deleteRejectedReports
@@ -11,14 +12,19 @@ const router = express.Router();
 
 /**
  * GET /api/reports
- * Public  → approved reports only
- * Admin   → all reports (handled inside controller)
+ * Public → approved reports only
  */
 router.get("/", getReports);
 
 /**
+ * GET /api/reports/admin
+ * Admin → all reports
+ */
+router.get("/admin", auth, isAdmin, getAllReportsAdmin);
+
+/**
  * POST /api/reports
- * User submits a report (JWT required)
+ * User submits report (JWT required)
  */
 router.post("/", auth, createReport);
 
