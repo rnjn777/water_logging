@@ -30,15 +30,19 @@ export const createReport = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    let imageUrl = null;
+let imageUrl = null;
 
-    // ✅ Upload image to Cloudinary
-    if (imageBase64) {
-      const upload = await cloudinary.uploader.upload(imageBase64, {
-        folder: "water-logging-reports"
-      });
-      imageUrl = upload.secure_url;
-    }
+if (imageBase64) {
+  console.log("Uploading image to Cloudinary...");
+
+  const upload = await cloudinary.uploader.upload(imageBase64, {
+    folder: "water-logging-reports",
+    resource_type: "image"
+  });
+
+  imageUrl = upload.secure_url;
+}
+
 
     const report = await prisma.report.create({
       data: {
