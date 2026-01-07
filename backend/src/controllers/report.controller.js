@@ -74,12 +74,9 @@ export const approveReport = async (req, res) => {
  */
 export const getReports = async (req, res) => {
   try {
-    const isAdmin = req.user && req.user.role === "ADMIN";
-
-    const where = isAdmin ? {} : { is_approved: true };
-
+    // Public access → approved only
     const reports = await prisma.report.findMany({
-      where,
+      where: { is_approved: true },
       orderBy: { createdAt: "desc" }
     });
 
