@@ -100,23 +100,29 @@ export const approveReport = async (req, res) => {
       }
     });
 
-    const user = await prisma.user.update({
+    // increment approved_reports first
+    await prisma.user.update({
       where: { id: report.user_id },
       data: { approved_reports: { increment: 1 } }
     });
 
+    // fetch fresh user counts to avoid stale/typed values from the update result
+    const updatedUser = await prisma.user.findUnique({ where: { id: report.user_id } });
+
+    const totalReports = updatedUser && updatedUser.total_reports ? Number(updatedUser.total_reports) : 0;
+    const approvedReports = updatedUser && updatedUser.approved_reports ? Number(updatedUser.approved_reports) : 0;
+
     const trustScore =
-      user.total_reports === 0
+      totalReports === 0
         ? 0
-        : Math.min(
-            100,
-            Math.round((user.approved_reports / user.total_reports) * 100)
-          );
+        : Math.min(100, Math.round((approvedReports / totalReports) * 100));
 
     await prisma.user.update({
       where: { id: report.user_id },
       data: { trust_score: trustScore }
     });
+
+    console.log(`APPROVE_REPORT: reportId=${reportId} userId=${report.user_id} approved=${approvedReports} total=${totalReports} trustScore=${trustScore}`);
 
     res.json({ message: "Report approved", trust_score: trustScore });
   } catch (err) {
