@@ -14,7 +14,7 @@ const router = express.Router();
  * Public  → approved reports only
  * Admin   → all reports (handled inside controller)
  */
-router.get("/", authOptional, getReports);
+router.get("/", getReports);
 
 /**
  * POST /api/reports
