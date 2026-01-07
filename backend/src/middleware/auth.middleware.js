@@ -22,9 +22,14 @@ const auth = (req, res, next) => {
 };
 
 export const isAdmin = (req, res, next) => {
+  console.log(`🔐 AUTH CHECK - User ID: ${req.user.userId}, Role: ${req.user.role}`);
+  
   if (req.user.role !== "ADMIN") {
+    console.log(`❌ ADMIN ACCESS DENIED - Role is ${req.user.role}, not ADMIN`);
     return res.status(403).json({ message: "Admin only" });
   }
+  
+  console.log(`✅ ADMIN VERIFIED - User ${req.user.userId} has ADMIN role`);
   next();
 };
 

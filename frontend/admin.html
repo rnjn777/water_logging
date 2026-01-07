@@ -987,9 +987,70 @@ body {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// Reports array - loaded from localStorage
-let reports = JSON.parse(localStorage.getItem('waterloggingReports')) || [];
-let filteredReports = [...reports];
+const API_BASE_URL = "https://water-logging.onrender.com";
+
+// Reports array - loaded from backend API
+let reports = [];
+let filteredReports = [];
+let allReportsFromDB = [];
+
+// Fetch reports from backend API on page load
+async function loadReportsFromAPI() {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      console.error('❌ NO TOKEN FOUND - Admin not logged in');
+      alert('⚠️ No authentication token. Please log in as admin first.');
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    console.log('✅ Admin auth token found - fetching reports...');
+    
+    const res = await fetch(`${API_BASE_URL}/api/reports/admin`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!res.ok) {
+      console.error(`❌ API Error: ${res.status} - ${res.statusText}`);
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    console.log('✅ Reports fetched from API:', data);
+    
+    // Map backend report format to UI format
+    allReportsFromDB = data.map(report => ({
+      id: String(report.id),
+      location: report.location || 'Unknown',
+      lat: report.latitude || 0,
+      lng: report.longitude || 0,
+      severity: (report.severity || 'MEDIUM').toLowerCase(),
+      status: report.is_approved ? 'approved' : 'pending',
+      image: report.image || null,
+      timestamp: report.createdAt ? new Date(report.createdAt).toLocaleString() : '—',
+      userId: report.user_id,
+      rainIntensity: report.rainIntensity
+    }));
+    
+    reports = [...allReportsFromDB];
+    filteredReports = [...reports];
+    
+    console.log(`✅ Loaded ${reports.length} reports from database`);
+    updateStats();
+    renderReports();
+  } catch (err) {
+    console.error('❌ Failed to load reports:', err);
+    alert(`❌ Error loading reports: ${err.message}`);
+  }
+}
+
+// Load on page load
+window.addEventListener('load', loadReportsFromAPI);
 
 let selectedReports = new Set();
 
@@ -1184,21 +1245,33 @@ function toggleRowSelection(reportId, event) {
   }
 }
 
-function approveReport(reportId, event) {
+async function approveReport(reportId, event) {
   if (event) event.stopPropagation();
   const report = reports.find(r => r.id === reportId);
-  if (report) {
+  if (!report) return;
+  
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/api/reports/${reportId}/approve`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    const result = await res.json();
+    console.log(`✅ Report ${reportId} approved on backend`);
+    
     report.status = 'approved';
-    
-    // Save to localStorage
-    localStorage.setItem('waterloggingReports', JSON.stringify(reports));
-    
-    // Add to GeoJSON (in a real app, this would update the backend)
-    addToGeoJSON(report);
-    
     updateStats();
     renderReports();
     showNotification(`✅ Report ${reportId} approved successfully`, 'success');
+  } catch (err) {
+    console.error('❌ Approval failed:', err);
+    showNotification(`❌ Approval failed: ${err.message}`, 'error');
   }
 }
 
@@ -1416,6 +1489,8 @@ function showNotification(message, type) {
 
 function logout() {
   if (confirm('Are you sure you want to logout?')) {
+    localStorage.removeItem('token');
+    console.log('🚪 Admin logged out');
     window.location.href = 'index.html';
   }
 }

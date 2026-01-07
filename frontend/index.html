@@ -800,18 +800,22 @@ async function loginAdmin() {
   const email = document.getElementById("adminEmail").value;
   const password = document.getElementById("adminPassword").value;
 
-const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email, password, role: "ADMIN" })
-});
+  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password, role: "ADMIN" })
+  });
+
+  const data = await res.json();
 
   if (!res.ok) {
-    alert("Admin login failed");
+    alert(data.message || "Admin login failed");
     return;
   }
 
-  // ✅ redirect ONLY here
+  // store admin token and redirect
+  localStorage.setItem("token", data.token);
+  alert("Admin login successful");
   window.location.href = "admin.html";
 }
 

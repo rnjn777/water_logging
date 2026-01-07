@@ -1844,6 +1844,11 @@ async function submitReport() {
     // 🔵 THIS WAS MISSING
     imageBase64: currentReportImageBase64 || null
   };
+  console.log("IMAGE DEBUG 👉",
+  currentReportImageBase64?.substring(0, 50),
+  currentReportImageBase64?.length
+);
+
 
   try {
     const res = await fetch(`${API_BASE_URL}/api/reports`, {
@@ -1854,8 +1859,20 @@ async function submitReport() {
       },
       body: JSON.stringify(payload)
     });
+const text = await res.text();
 
-    const data = await res.json();
+let data;
+try {
+  data = JSON.parse(text);
+} catch (err) {
+  console.error("Server returned non‑JSON:", text);
+  throw new Error("Server error while uploading image");
+}
+
+if (!res.ok) {
+  throw new Error(data.message || "Submit failed");
+}
+
 
     if (!res.ok) {
       throw new Error(data.message || "Submit failed");

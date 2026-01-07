@@ -148,9 +148,13 @@ export const getReports = async (req, res) => {
  */
 export const getAllReportsAdmin = async (req, res) => {
   try {
+    console.log(`📊 ADMIN REPORTS REQUEST - User: ${req.user.userId}, Role: ${req.user.role}`);
+    
     const reports = await prisma.report.findMany({
       orderBy: { createdAt: "desc" }
     });
+    
+    console.log(`✅ Returned ${reports.length} reports to admin`);
     res.json(reports);
   } catch (err) {
     console.error("ADMIN GET REPORTS ERROR:", err);
