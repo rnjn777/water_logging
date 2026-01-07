@@ -1834,12 +1834,15 @@ async function submitReport() {
     return;
   }
 
-  const payload = {
+ const payload = {
     latitude: Number(currentReportLatLng.lat),
     longitude: Number(currentReportLatLng.lng),
     location: locationName,
     severity,
-    rainIntensity: "medium"
+    rainIntensity: "medium",
+
+    // 🔵 THIS WAS MISSING
+    imageBase64: currentReportImageBase64 || null
   };
 
   try {
