@@ -9,16 +9,16 @@ import {
 
 const router = express.Router();
 
-// public (map) - now with optional auth
-router.get("/", auth, getReports);
+// PUBLIC → approved only
+router.get("/", getReports);
 
-// protected (user submit)
+// USER → submit report
 router.post("/", auth, createReport);
 
-// admin approve
+// ADMIN → approve
 router.patch("/:reportId/approve", auth, isAdmin, approveReport);
 
-// admin delete rejected
+// ADMIN → cleanup
 router.delete("/rejected", auth, isAdmin, deleteRejectedReports);
 
 export default router;
