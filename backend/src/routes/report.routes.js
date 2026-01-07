@@ -9,16 +9,17 @@ import {
 
 const router = express.Router();
 
-// PUBLIC → approved only
+// Public → approved only
 router.get("/", getReports);
 
-// USER → submit report
+// Admin → all reports
+router.get("/admin", auth, isAdmin, getAllReportsAdmin);
+
+// User submit
 router.post("/", auth, createReport);
 
-// ADMIN → approve
+// Admin approve
 router.patch("/:reportId/approve", auth, isAdmin, approveReport);
 
-// ADMIN → cleanup
-router.delete("/rejected", auth, isAdmin, deleteRejectedReports);
 
 export default router;
