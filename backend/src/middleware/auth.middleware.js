@@ -1,18 +1,25 @@
 import jwt from "jsonwebtoken";
 
+/**
+ * Auth middleware
+ * Verifies JWT and attaches user to req.user
+ */
 const auth = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
+    // 1️⃣ Token missing
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "No token provided" });
     }
 
+    // 2️⃣ Extract token
     const token = authHeader.split(" ")[1];
 
+    // 3️⃣ Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ IMPORTANT
+    // 4️⃣ Attach user (🔥 THIS MUST MATCH CONTROLLERS)
     req.user = {
       userId: decoded.userId,
       role: decoded.role
@@ -25,8 +32,11 @@ const auth = (req, res, next) => {
   }
 };
 
+/**
+ * Admin-only middleware
+ */
 export const isAdmin = (req, res, next) => {
-  if (req.user.role !== "ADMIN") {
+  if (!req.user || req.user.role !== "ADMIN") {
     return res.status(403).json({ message: "Admin access required" });
   }
   next();
