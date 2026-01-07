@@ -1,6 +1,4 @@
 import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
-import multer from "multer";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,14 +6,4 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "waterlogging_reports",
-    allowed_formats: ["jpg", "jpeg", "png"],
-    resource_type: "image"
-  }
-});
-
-
-export const upload = multer({ storage });
+export default cloudinary;
