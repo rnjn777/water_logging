@@ -150,12 +150,39 @@ export const getAllReportsAdmin = async (req, res) => {
   try {
     console.log(`📊 ADMIN REPORTS REQUEST - User: ${req.user.userId}, Role: ${req.user.role}`);
     
+    // include the reporting user so we can expose trust_score
     const reports = await prisma.report.findMany({
+      include: {
+        user: {
+          select: { id: true, name: true, trust_score: true }
+        }
+      },
       orderBy: { createdAt: "desc" }
     });
-    
-    console.log(`✅ Returned ${reports.length} reports to admin`);
-    res.json(reports);
+
+    // sort in-memory by user's trust_score (desc). If user missing, treat as 0.
+    const sorted = reports.sort((a, b) => {
+      const ta = a.user && a.user.trust_score ? Number(a.user.trust_score) : 0;
+      const tb = b.user && b.user.trust_score ? Number(b.user.trust_score) : 0;
+      // primary sort by trust score desc, fallback to createdAt desc
+      if (tb !== ta) return tb - ta;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    // convert Prisma Decimal trust_score to plain Number for JSON
+    const sanitized = sorted.map((r) => {
+      if (r.user && r.user.trust_score !== undefined && r.user.trust_score !== null) {
+        try {
+          r.user.trust_score = Number(r.user.trust_score);
+        } catch (e) {
+          r.user.trust_score = 0;
+        }
+      }
+      return r;
+    });
+
+    console.log(`✅ Returned ${sanitized.length} reports to admin (sorted by trust_score)`);
+    res.json(sanitized);
   } catch (err) {
     console.error("ADMIN GET REPORTS ERROR:", err);
     res.status(500).json({ message: "Failed to fetch reports" });

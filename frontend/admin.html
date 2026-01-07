@@ -930,6 +930,9 @@ body {
         <button class="bulk-btn reject-all" onclick="rejectSelected()">
           ❌ Reject Selected
         </button>
+        <button class="bulk-btn" onclick="removeSelected()" style="background:linear-gradient(135deg,#94a3b8,#64748b);color:white">
+          🗑️ Remove Selected
+        </button>
       </div>
     </div>
     
@@ -941,6 +944,7 @@ body {
               <input type="checkbox" class="custom-checkbox" id="selectAll" onchange="toggleSelectAll()">
             </th>
             <th>Report ID</th>
+            <th>User Trust</th>
             <th>Location</th>
             <th>Coordinates</th>
             <th>Severity</th>
@@ -1034,6 +1038,8 @@ async function loadReportsFromAPI() {
       image: report.image || null,
       timestamp: report.createdAt ? new Date(report.createdAt).toLocaleString() : '—',
       userId: report.user_id,
+      // ensure trust score is always a Number (default 0) so UI shows 0% instead of '—'
+      userTrustScore: report.user && report.user.trust_score != null ? Number(report.user.trust_score) : 0,
       rainIntensity: report.rainIntensity
     }));
     
@@ -1098,6 +1104,12 @@ function renderReports() {
         </td>
 
         <td class="report-id">${report.id}</td>
+
+        <td>
+          <span class="stat-value">
+            ${!isNaN(report.userTrustScore) ? `${Math.round(report.userTrustScore)}%` : '—'}
+          </span>
+        </td>
 
         <td class="location-text">${locationText}</td>
 
@@ -1481,6 +1493,33 @@ function rejectSelected() {
   updateStats();
   renderReports();
   showNotification(`❌ ${count} report(s) rejected`, 'error');
+}
+
+function removeSelected() {
+  if (selectedReports.size === 0) {
+    showNotification('⚠️ Please select reports to remove', 'warning');
+    return;
+  }
+
+  // NOTE: This action only removes reports from the admin UI (client-side view).
+  // It does NOT delete anything from the server/database (Render).
+  if (!confirm('Remove selected reports from view? This will NOT delete them from the server/database.')) return;
+
+  const count = selectedReports.size;
+
+  // Remove selected reports from the in-memory list
+  selectedReports.forEach(reportId => {
+    const idx = reports.findIndex(r => r.id === reportId);
+    if (idx !== -1) reports.splice(idx, 1);
+  });
+
+  // Clear selection and refresh
+  selectedReports.clear();
+  filteredReports = [...reports];
+  updateStats();
+  renderReports();
+
+  showNotification(`🗑️ ${count} report(s) removed from view`, 'info');
 }
 
 function showNotification(message, type) {
