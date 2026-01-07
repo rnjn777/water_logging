@@ -1814,64 +1814,48 @@ function updateLegend() {
   document.querySelector(".high").style.background = "#dc2626";
 }
 
-function submitReport() {
-  console.log('Checking duplicate at:', currentReportLatLng);
-
+async function submitReport() {
   if (!currentReportLatLng) {
-    showWarningModal('Error', 'Please select a location first');
+    showWarningModal("Error", "Select location first");
     return;
   }
 
-  // Check for nearby reports within 100m radius
-  const nearbyCheck = hasNearbyReport(
-    currentReportLatLng.lat,
-    currentReportLatLng.lng,
-    100
-  );
-
-  if (nearbyCheck.found) {
-    showDuplicateWarning(nearbyCheck.reports);
+  const token = localStorage.getItem("token");
+  if (!token) {
+    showWarningModal("Login required", "Please login");
     return;
   }
 
-  const locationName = document.getElementById('reportLocationName').value.trim();
-  const description = document.getElementById('reportDescription').value.trim();
-  const severity = document.getElementById('severitySelect').value.toLowerCase();
+  const payload = {
+    latitude: Number(currentReportLatLng.lat),
+    longitude: Number(currentReportLatLng.lng),
+    location: document.getElementById("reportLocationName").value.trim(),
+    severity: document.getElementById("severitySelect").value.toLowerCase(),
+    rainIntensity: "medium"
+  };
 
-  if (!locationName) {
-    showWarningModal('Missing Information', 'Please provide a location name');
-    return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/reports`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message);
+
+    showSuccessModal("Submitted", "Pending admin approval");
+    closeReportModal();
+    loadReportsFromDB();
+  } catch (err) {
+    showWarningModal("Error", err.message);
   }
-
-const report = {
-  id: 'WL-' + new Date().getFullYear() + '-' + Date.now().toString().slice(-6),
-  location: locationName,
-  description,
-  lat: Number(currentReportLatLng.lat),
-  lng: Number(currentReportLatLng.lng),
-  severity,
-  status: 'pending',
-  image: currentReportImageBase64,
-  timestamp: new Date().toLocaleString('en-IN'),
-  createdAt: Date.now() // 🔴 REQUIRED
-};
-
-  const reports = JSON.parse(localStorage.getItem('waterloggingReports') || '[]');
-  reports.push(report);
-  localStorage.setItem('waterloggingReports', JSON.stringify(reports));
-
-  L.circleMarker([report.lat, report.lng], {
-    radius: 10,
-    fillColor: '#94a3b8',
-    fillOpacity: 0.6,
-    color: '#ffffff',
-    weight: 3,
-    dashArray: '5,5'
-  }).addTo(map);
-
-  closeReportModal();
-  showSuccessModal('Report Submitted', 'Your waterlogging report has been submitted successfully!');
 }
+
 
 function showDuplicateWarning(reports) {
   let reportsHTML = '';
