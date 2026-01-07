@@ -87,6 +87,20 @@ export const getReports = async (req, res) => {
   }
 };
 
+
+export const getAllReportsAdmin = async (req, res) => {
+  try {
+    const reports = await prisma.report.findMany({
+      orderBy: { createdAt: "desc" }
+    });
+    res.json(reports);
+  } catch (err) {
+    console.error("ADMIN GET REPORTS ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch reports" });
+  }
+};
+
+
 /**
  * DELETE /api/reports/rejected
  * Admin only: Delete all reports that are not approved (pending/rejected)
