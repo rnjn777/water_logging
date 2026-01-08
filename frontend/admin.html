@@ -1081,8 +1081,6 @@ async function loadReportsFromAPI() {
       severity: (report.severity || 'MEDIUM').toLowerCase(),
       status: report.is_rejected ? 'rejected' : (report.is_approved ? 'approved' : 'pending'),
       image: report.image || null,
-      processedImage: report.processed_image || null,
-      isWaterlogged: report.is_waterlogged === true,
       timestamp: report.createdAt ? new Date(report.createdAt).toLocaleString() : '—',
       userId: report.user_id,
       // ensure trust score is always a Number (default 0) so UI shows 0% instead of '—'
@@ -1186,21 +1184,6 @@ function renderReports() {
     />
   ` : '<span class="no-proof">—</span>'}
 </td>
-
-        <td>
-  ${report.processedImage ? `
-    <img 
-      src="${report.processedImage}"
-      class="proof-thumb"
-      onclick="viewProcessedImage('${report.id}', event)"
-      title="Click to view processed image"
-    />
-  ` : '<span class="no-proof">—</span>'}
-</td>
-
-        <td>
-          ${typeof report.isWaterlogged === 'boolean' ? (report.isWaterlogged ? '<span style="color: #0ea5a4; font-weight: 700;">YES</span>' : '<span style="color: #ef4444; font-weight: 700;">NO</span>') : '<span class="no-proof">—</span>'}
-        </td>
 
 
         <td>
@@ -1485,32 +1468,12 @@ function viewReport(reportId, event) {
   const container = document.getElementById('viewImageContainer');
   container.innerHTML = '';
 
-  // show original image
-  container.innerHTML = '';
-
-  if (report.image) {
-    const orig = document.createElement('img');
-    orig.src = report.image;
-    orig.style.marginRight = '12px';
-    container.appendChild(orig);
-  }
-
-  // show processed image if available
-  if (report.processedImage) {
-    const proc = document.createElement('img');
-    proc.src = report.processedImage;
-    proc.style.border = '2px solid #f97316';
-    container.appendChild(proc);
-  }
-
-  if (!report.image && !report.processedImage) {
+  if (report.image && report.image.startsWith('data:image')) {
+    const img = document.createElement('img');
+    img.src = report.image;
+    container.appendChild(img);
+  } else {
     container.innerHTML = '<span class="no-proof">No image uploaded</span>';
-  }
-
-  const flag = document.getElementById('viewWaterloggedFlag');
-  if (flag) {
-    flag.textContent = typeof report.isWaterlogged === 'boolean' ? (report.isWaterlogged ? 'YES' : 'NO') : '—';
-    flag.style.color = report.isWaterlogged ? '#0ea5a4' : '#ef4444';
   }
 
   document.getElementById('viewReportModal').style.display = 'flex';
@@ -1778,26 +1741,8 @@ renderReports();
       </div>
     </div>
 
-    <div class="view-row">
-      <strong>Waterlogged:</strong>
-      <span id="viewWaterloggedFlag">—</span>
-    </div>
-
   </div>
 </div>
-
-
-<script>
-function viewProcessedImage(reportId, event) {
-  if (event) event.stopPropagation();
-  const report = reports.find(r => r.id === reportId);
-  if (!report || !report.processedImage) return;
-
-  document.getElementById('modalImage').src = report.processedImage;
-  document.getElementById('imageInfo').textContent = `Processed Image - Waterlogged: ${report.isWaterlogged ? 'Yes' : 'No'}`;
-  document.getElementById('imageModal').style.display = 'flex';
-}
-</script>
 
 
 
