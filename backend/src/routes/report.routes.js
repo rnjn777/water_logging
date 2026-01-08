@@ -6,6 +6,7 @@ import {
   createReport,
   approveReport,
   rejectReport,
+  reprocessReport,
   deleteRejectedReports,
   recalculateTrustScores,
   clearAllReports
@@ -42,6 +43,12 @@ router.patch("/:reportId/reject", auth, isAdmin, rejectReport);
  * Admin approves report
  */
 router.patch("/:reportId/approve", auth, isAdmin, approveReport);
+
+/**
+ * POST /api/reports/:reportId/reprocess
+ * Admin reprocesses report image via the detector (useful if detector was down during submit)
+ */
+router.post("/:reportId/reprocess", auth, isAdmin, reprocessReport);
 
 /**
  * DELETE /api/reports/rejected
