@@ -1859,20 +1859,8 @@ async function submitReport() {
       },
       body: JSON.stringify(payload)
     });
-const text = await res.text();
 
-let data;
-try {
-  data = JSON.parse(text);
-} catch (err) {
-  console.error("Server returned non‑JSON:", text);
-  throw new Error("Server error while uploading image");
-}
-
-if (!res.ok) {
-  throw new Error(data.message || "Submit failed");
-}
-
+    const data = await res.json();
 
     if (!res.ok) {
       throw new Error(data.message || "Submit failed");
