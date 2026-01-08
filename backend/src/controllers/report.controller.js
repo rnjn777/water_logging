@@ -269,6 +269,22 @@ export const recalculateTrustScores = async (req, res) => {
 };
 
 /**
+ * DELETE /api/reports/rejected
+ * Admin deletes all unapproved reports
+ */
+export const deleteRejectedReports = async (req, res) => {
+  try {
+    const result = await prisma.report.deleteMany({
+      where: { is_approved: false }
+    });
+    res.json({ message: `Deleted ${result.count} rejected reports` });
+  } catch (err) {
+    console.error("DELETE REJECTED ERROR:", err);
+    res.status(500).json({ message: "Failed to delete reports" });
+  }
+};
+
+/**
  * DELETE /api/reports/clear-all
  * Admin clears all reports and resets user counters
  */
