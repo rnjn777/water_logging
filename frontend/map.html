@@ -1617,21 +1617,116 @@ function getRadius() {
          rainLevel === "Moderate" ? 9 : 8;
 }
 
+// 🌧️ Get rainfall (last hour) — use precipitation key (compat with Open-Meteo)
+async function getRainfall(lat, lng) {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=precipitation&past_days=1`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  const rainArr = data.hourly?.precipitation || [];
+  return rainArr.length ? rainArr[rainArr.length - 1] : 0;
+}
+
+// 🏔️ Get elevation
+async function getElevation(lat, lng) {
+  const url =
+    `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  return data.elevation?.[0] ?? 50;
+}
+
+// 🧮 Flood risk formula
+function calculateFloodRisk(rainfall, elevation) {
+  let elevationFactor;
+
+  if (elevation < 10) elevationFactor = 100;
+  else if (elevation < 30) elevationFactor = 60;
+  else elevationFactor = 20;
+
+  let score = (rainfall * 0.6) + (elevationFactor * 0.4);
+  return Math.min(100, Math.round(score));
+}
+
 function enableReportMode() {
   map.getContainer().style.cursor = 'crosshair';
 
-  map.once('click', function (e) {
+  map.once('click', async function (e) {
     map.getContainer().style.cursor = '';
 
-    const check = hasNearbyReport(e.latlng.lat, e.latlng.lng, 100);
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
 
+    // 1️⃣ Check duplicates (existing logic)
+    const check = hasNearbyReport(lat, lng, 100);
     if (check.found) {
       showDuplicateWarning(check.reports);
-      return; // 🚫 DO NOT OPEN FORM
+      return;
     }
 
-    openReportModal(e.latlng.lat, e.latlng.lng, false);
+    try {
+      // 2️⃣ Fetch data
+      const rainfall = await getRainfall(lat, lng);
+      const elevation = await getElevation(lat, lng);
+
+      // 3️⃣ Calculate risk
+      const riskScore = calculateFloodRisk(rainfall, elevation);
+
+      // 4️⃣ Show result BEFORE report
+      showFloodRiskModal(riskScore, rainfall, elevation);
+
+      // 5️⃣ Continue to report form
+      openReportModal(lat, lng, false);
+
+    } catch (err) {
+      console.error("Flood risk error:", err);
+      alert("Failed to calculate flood risk");
+      openReportModal(lat, lng, false);
+    }
   });
+}
+function showFloodRiskModal(score, rain, elevation) {
+  const level =
+    score > 70 ? "🔴 HIGH RISK" :
+    score > 40 ? "🟠 MEDIUM RISK" :
+    "🟢 LOW RISK";
+
+  const html = `
+    <div id="riskModal" style="
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    ">
+      <div style="
+        background: white;
+        padding: 24px;
+        border-radius: 14px;
+        max-width: 360px;
+        text-align: center;
+        font-family: Inter;
+      ">
+        <h2>Flood Risk Analysis</h2>
+        <h1>${level}</h1>
+        <p><strong>Risk Score:</strong> ${score}/100</p>
+        <p>🌧 Rainfall: ${rain} mm</p>
+        <p>🏔 Elevation: ${elevation} m</p>
+        <button onclick="document.getElementById('riskModal').remove()"
+          style="margin-top: 12px; padding: 10px 20px; font-weight: 700;">
+          Continue
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", html);
 }
 
 
@@ -1652,6 +1747,12 @@ function reportCurrentLocation() {
 
     openReportModal(lat, lng, true);
   });
+}
+async function fetchFloodRisk(lat, lng) {
+  const res = await fetch(`${API_BASE_URL}/api/risk?lat=${lat}&lng=${lng}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch flood risk');
+  return data;
 }
 
 function openReportModal(lat, lng, isGPS) {
@@ -2085,43 +2186,42 @@ function closeDuplicateWarning() {
   }
 }
 
-function viewNearbyReports() {
-  closeDuplicateWarning();
-  closeReportModal();
-  
-  if (currentReportLatLng) {
-    map.setView([currentReportLatLng.lat, currentReportLatLng.lng], 15);
-  }
-}
+function enableReportMode() {
+  map.getContainer().style.cursor = 'crosshair';
 
-function showSuccessModal(title, message) {
-  const successHTML = `
-    <div id="successModal" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10000;
-    ">
-      <div style="
-        background: white;
-        border-radius: 12px;
-        padding: 32px;
-        text-align: center;
-        max-width: 400px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      ">
-        <div style="font-size: 56px; margin-bottom: 16px;">✅</div>
-        <h2 style="margin: 0 0 12px 0; color: #1e293b; font-size: 22px; font-weight: 800;">${title}</h2>
-        <p style="margin: 0 0 24px 0; color: #64748b; font-size: 15px;">${message}</p>
-        <button onclick="closeSuccessModal()" style="
-          padding: 12px 32px;
-          background: #10b981;
+  map.once('click', async function (e) {
+    map.getContainer().style.cursor = '';
+
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    // 1️⃣ Check duplicates
+    const check = hasNearbyReport(lat, lng, 100);
+    if (check.found) {
+      showDuplicateWarning(check.reports);
+      return;
+    }
+
+    try {
+      // Use backend endpoint for consistent risk calculation
+      const result = await fetchFloodRisk(lat, lng);
+
+      const rainfall = result.rainfall_mm ?? result.rainfall ?? 0;
+      const elevation = result.elevation ?? 0;
+      const riskScore = result.floodRiskScore ?? result.floodRisk ?? calculateFloodRisk(rainfall, elevation);
+
+      // Show result BEFORE report
+      showFloodRiskModal(riskScore, rainfall, elevation);
+
+      // Continue to report form
+      openReportModal(lat, lng, false);
+    } catch (err) {
+      console.error("Flood risk error:", err);
+      alert("Failed to calculate flood risk");
+      openReportModal(lat, lng, false);
+    }
+  });
+}
           color: white;
           border: none;
           border-radius: 8px;
