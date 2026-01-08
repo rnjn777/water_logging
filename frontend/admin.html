@@ -75,6 +75,29 @@ body {
   margin-top: 2px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.recalc-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.recalc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+}
+
 .logout-btn {
   background: linear-gradient(135deg, #dc2626, #ef4444);
   border: none;
@@ -846,7 +869,10 @@ body {
         <div class="header-subtitle">Waterlogging Report Management</div>
       </div>
     </div>
-    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    <div class="header-actions">
+      <button class="recalc-btn" onclick="recalculateTrustScores()">🔄 Recalc Trust</button>
+      <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    </div>
   </div>
 </header>
 
@@ -1284,6 +1310,31 @@ async function approveReport(reportId, event) {
   } catch (err) {
     console.error('❌ Approval failed:', err);
     showNotification(`❌ Approval failed: ${err.message}`, 'error');
+  }
+}
+
+async function recalculateTrustScores() {
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/api/reports/recalculate-trust`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
+    const result = await res.json();
+    console.log('✅ Trust scores recalculated:', result);
+    showNotification(`✅ ${result.message}`, 'success');
+    
+    // Reload reports to get updated trust scores
+    await loadReportsFromAPI();
+  } catch (err) {
+    console.error('❌ Recalculation failed:', err);
+    showNotification(`❌ Recalculation failed: ${err.message}`, 'error');
   }
 }
 

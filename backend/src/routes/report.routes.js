@@ -5,7 +5,8 @@ import {
   getAllReportsAdmin,
   createReport,
   approveReport,
-  deleteRejectedReports
+  deleteRejectedReports,
+  recalculateTrustScores
 } from "../controllers/report.controller.js";
 
 const router = express.Router();
@@ -39,5 +40,11 @@ router.patch("/:reportId/approve", auth, isAdmin, approveReport);
  * Admin deletes all pending/unapproved reports
  */
 router.delete("/rejected", auth, isAdmin, deleteRejectedReports);
+
+/**
+ * POST /api/reports/recalculate-trust
+ * Admin recalculates trust scores
+ */
+router.post("/recalculate-trust", auth, isAdmin, recalculateTrustScores);
 
 export default router;

@@ -166,6 +166,12 @@ export const getAllReportsAdmin = async (req, res) => {
       orderBy: { createdAt: "desc" }
     });
 
+    // Log reports without user_id
+    const reportsWithoutUser = reports.filter(r => !r.user_id);
+    if (reportsWithoutUser.length > 0) {
+      console.log(`⚠️ Found ${reportsWithoutUser.length} reports without user_id:`, reportsWithoutUser.map(r => r.id));
+    }
+
     // sort in-memory by user's trust_score (desc). If user missing, treat as 0.
     const sorted = reports.sort((a, b) => {
       const ta = a.user && a.user.trust_score ? Number(a.user.trust_score) : 0;
@@ -196,17 +202,45 @@ export const getAllReportsAdmin = async (req, res) => {
 };
 
 /**
- * DELETE /api/reports/rejected
- * Admin deletes all unapproved reports
+ * POST /api/reports/recalculate-trust
+ * Admin recalculates trust scores for all users
  */
-export const deleteRejectedReports = async (req, res) => {
+export const recalculateTrustScores = async (req, res) => {
   try {
-    const result = await prisma.report.deleteMany({
-      where: { is_approved: false }
+    console.log("🔄 Recalculating trust scores for all users...");
+
+    // Get all users with their reports
+    const users = await prisma.user.findMany({
+      include: {
+        reports: true
+      }
     });
-    res.json({ message: `Deleted ${result.count} rejected reports` });
+
+    let updatedCount = 0;
+
+    for (const user of users) {
+      const totalReports = user.reports.length;
+      const approvedReports = user.reports.filter(r => r.is_approved).length;
+
+      const trustScore = totalReports === 0 ? 0 : Math.min(100, Math.round((approvedReports / totalReports) * 100));
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          total_reports: totalReports,
+          approved_reports: approvedReports,
+          trust_score: trustScore
+        }
+      });
+
+      updatedCount++;
+      console.log(`✅ User ${user.email}: total=${totalReports}, approved=${approvedReports}, trust=${trustScore}%`);
+    }
+
+    console.log(`🎉 Trust scores recalculated for ${updatedCount} users!`);
+    res.json({ message: `Trust scores recalculated for ${updatedCount} users` });
   } catch (err) {
-    console.error("DELETE REJECTED ERROR:", err);
-    res.status(500).json({ message: "Failed to delete reports" });
+    console.error("RECALCULATE TRUST ERROR:", err);
+    res.status(500).json({ message: "Failed to recalculate trust scores" });
   }
 };

@@ -76,6 +76,25 @@ async function insertTestData() {
 
     console.log("✅ Report 3 (approved):", report3);
 
+    // Update user counters after creating reports
+    const userReports = await prisma.report.findMany({
+      where: { user_id: testUser.id }
+    });
+    const totalReports = userReports.length;
+    const approvedReports = userReports.filter(r => r.is_approved).length;
+    const trustScore = totalReports === 0 ? 0 : Math.min(100, Math.round((approvedReports / totalReports) * 100));
+
+    await prisma.user.update({
+      where: { id: testUser.id },
+      data: {
+        total_reports: totalReports,
+        approved_reports: approvedReports,
+        trust_score: trustScore
+      }
+    });
+
+    console.log(`✅ Updated user counters: total=${totalReports}, approved=${approvedReports}, trust=${trustScore}%`);
+
     console.log("\n✅ Test data inserted successfully!");
     process.exit(0);
   } catch (err) {
