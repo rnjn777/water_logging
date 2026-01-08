@@ -155,6 +155,46 @@ export const approveReport = async (req, res) => {
 };
 
 /**
+ * PATCH /api/reports/:reportId/reject
+ * Admin rejects report
+ */
+export const rejectReport = async (req, res) => {
+  try {
+    const reportId = Number(req.params.reportId);
+    if (isNaN(reportId)) {
+      return res.status(400).json({ message: "Invalid report ID" });
+    }
+
+    const report = await prisma.report.findUnique({
+      where: { id: reportId }
+    });
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    if (report.is_rejected) {
+      return res.status(400).json({ message: "Report already rejected" });
+    }
+
+    await prisma.report.update({
+      where: { id: reportId },
+      data: {
+        is_rejected: true,
+        rejected_at: new Date()
+      }
+    });
+
+    console.log(`REJECT_REPORT: reportId=${reportId} userId=${report.user_id}`);
+
+    res.json({ message: "Report rejected" });
+  } catch (err) {
+    console.error("REJECT REPORT ERROR:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
  * GET /api/reports
  * Public → approved only
  */

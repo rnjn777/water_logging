@@ -1079,7 +1079,7 @@ async function loadReportsFromAPI() {
       lat: report.latitude || 0,
       lng: report.longitude || 0,
       severity: (report.severity || 'MEDIUM').toLowerCase(),
-      status: report.is_approved ? 'approved' : 'pending',
+      status: report.is_rejected ? 'rejected' : (report.is_approved ? 'approved' : 'pending'),
       image: report.image || null,
       timestamp: report.createdAt ? new Date(report.createdAt).toLocaleString() : '—',
       userId: report.user_id,
@@ -1417,15 +1417,36 @@ function addToGeoJSON(report) {
 function rejectReport(reportId, event) {
   if (event) event.stopPropagation();
   const report = reports.find(r => r.id === reportId);
-  if (report) {
-    report.status = 'rejected';
-    
-    // Save to localStorage
-    localStorage.setItem('waterloggingReports', JSON.stringify(reports));
-    
-    updateStats();
-    renderReports();
-    showNotification(`❌ Report ${reportId} rejected`, 'error');
+  if (!report) return;
+  
+  // Call backend API to reject report
+  try {
+    const token = localStorage.getItem('token');
+    fetch(`${API_BASE_URL}/api/reports/${reportId}/reject`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(result => {
+      console.log(`✅ Report ${reportId} rejected on backend`);
+      report.status = 'rejected';
+      updateStats();
+      renderReports();
+      showNotification(`❌ Report ${reportId} rejected`, 'error');
+    })
+    .catch(err => {
+      console.error('❌ Rejection failed:', err);
+      showNotification(`❌ Rejection failed: ${err.message}`, 'error');
+    });
+  } catch (err) {
+    console.error('❌ Error:', err);
+    showNotification(`❌ Error: ${err.message}`, 'error');
   }
 }
 
@@ -1552,22 +1573,40 @@ function approveSelected() {
   }
   
   const count = selectedReports.size;
+  const token = localStorage.getItem('token');
   
-  selectedReports.forEach(reportId => {
-    const report = reports.find(r => r.id === reportId);
-    if (report && report.status === 'pending') {
-      report.status = 'approved';
-      addToGeoJSON(report);
-    }
+  // Approve each selected report via API
+  const approvePromises = Array.from(selectedReports).map(reportId => {
+    return fetch(`${API_BASE_URL}/api/reports/${reportId}/approve`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => {
+      if (res.ok) {
+        const report = reports.find(r => r.id === reportId);
+        if (report) {
+          report.status = 'approved';
+          addToGeoJSON(report);
+        }
+      }
+      return res.ok;
+    });
   });
   
-  // Save to localStorage
-  localStorage.setItem('waterloggingReports', JSON.stringify(reports));
-  
-  selectedReports.clear();
-  updateStats();
-  renderReports();
-  showNotification(`✅ ${count} report(s) approved successfully`, 'success');
+  Promise.all(approvePromises).then(results => {
+    const succeededCount = results.filter(r => r).length;
+    
+    selectedReports.clear();
+    updateStats();
+    renderReports();
+    showNotification(`✅ ${succeededCount}/${count} report(s) approved successfully`, 'success');
+  }).catch(err => {
+    console.error('❌ Bulk approval failed:', err);
+    showNotification(`❌ Bulk approval failed: ${err.message}`, 'error');
+  });
 }
 
 function rejectSelected() {
@@ -1577,21 +1616,39 @@ function rejectSelected() {
   }
   
   const count = selectedReports.size;
+  const token = localStorage.getItem('token');
   
-  selectedReports.forEach(reportId => {
-    const report = reports.find(r => r.id === reportId);
-    if (report && report.status === 'pending') {
-      report.status = 'rejected';
-    }
+  // Reject each selected report via API
+  const rejectPromises = Array.from(selectedReports).map(reportId => {
+    return fetch(`${API_BASE_URL}/api/reports/${reportId}/reject`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => {
+      if (res.ok) {
+        const report = reports.find(r => r.id === reportId);
+        if (report) {
+          report.status = 'rejected';
+        }
+      }
+      return res.ok;
+    });
   });
   
-  // Save to localStorage
-  localStorage.setItem('waterloggingReports', JSON.stringify(reports));
-  
-  selectedReports.clear();
-  updateStats();
-  renderReports();
-  showNotification(`❌ ${count} report(s) rejected`, 'error');
+  Promise.all(rejectPromises).then(results => {
+    const succeededCount = results.filter(r => r).length;
+    
+    selectedReports.clear();
+    updateStats();
+    renderReports();
+    showNotification(`❌ ${succeededCount}/${count} report(s) rejected`, 'error');
+  }).catch(err => {
+    console.error('❌ Bulk rejection failed:', err);
+    showNotification(`❌ Bulk rejection failed: ${err.message}`, 'error');
+  });
 }
 
 function removeSelected() {

@@ -5,6 +5,7 @@ import {
   getAllReportsAdmin,
   createReport,
   approveReport,
+  rejectReport,
   deleteRejectedReports,
   recalculateTrustScores,
   clearAllReports
@@ -35,6 +36,12 @@ router.post("/", auth, createReport);
  * Admin approves report
  */
 router.patch("/:reportId/approve", auth, isAdmin, approveReport);
+
+/**
+ * PATCH /api/reports/:reportId/reject
+ * Admin rejects report
+ */
+router.patch("/:reportId/reject", auth, isAdmin, rejectReport);
 
 /**
  * DELETE /api/reports/rejected
