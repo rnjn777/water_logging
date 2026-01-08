@@ -67,12 +67,7 @@ if (imageBase64) {
 
       if (detRes && detRes.ok) {
         const detData = await detRes.json();
-        console.log('🔎 Detector response:', detData);
-
-        // Interpret waterlogged strictly only when explicitly present
-        if (detData.waterlogged === true) isWaterlogged = true;
-        else if (detData.waterlogged === false) isWaterlogged = false;
-        else isWaterlogged = null;
+        isWaterlogged = detData.waterlogged === true;
 
         if (detData.processed_image) {
           // Upload processed image (base64 data URI) to Cloudinary
@@ -86,23 +81,11 @@ if (imageBase64) {
             processedImageUrl = procRes.secure_url;
             console.log('✅ Processed image uploaded:', processedImageUrl);
           } catch (uploadErr) {
-            console.error('❌ Failed to upload processed image to Cloudinary:', uploadErr);
-            // Fallback: keep base64 data URI (detData.processed_image) so frontend can display it
-            try {
-              if (typeof detData.processed_image === 'string' && detData.processed_image.startsWith('data:image')) {
-                processedImageUrl = detData.processed_image;
-                console.log('ℹ️ Using processed image base64 as fallback (will be saved to DB)');
-              }
-            } catch (fallbackErr) {
-              console.error('❌ Processed image fallback failed:', fallbackErr);
-            }
+            console.error('❌ Failed to upload processed image:', uploadErr);
           }
         }
       } else {
-        // try to get error body for more info
-        let errText = '';
-        try { errText = await detRes.text(); } catch (e) {}
-        console.warn('⚠️ Detector did not return OK:', detRes && detRes.status, errText);
+        console.warn('⚠️ Detector did not return OK:', detRes && detRes.status);
       }
     } catch (detectorError) {
       console.error('❌ Detector request failed:', detectorError);
@@ -146,7 +129,6 @@ if (imageBase64) {
     ]);
 
     console.log(`✅ Report created: ${report.id} for user ${req.user.userId}`);
-    console.log('ℹ️ report.processed_image:', report.processed_image, 'is_waterlogged:', report.is_waterlogged);
     res.status(201).json(report);
   } catch (err) {
     console.error("CREATE REPORT ERROR:", err);
@@ -253,80 +235,6 @@ export const rejectReport = async (req, res) => {
   } catch (err) {
     console.error("REJECT REPORT ERROR:", err);
     res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-/**
- * POST /api/reports/:reportId/reprocess
- * Admin → re-run detector on an existing report image and save processed image / waterlogged flag
- */
-export const reprocessReport = async (req, res) => {
-  try {
-    const reportId = Number(req.params.reportId);
-    if (isNaN(reportId)) return res.status(400).json({ message: 'Invalid report ID' });
-
-    const report = await prisma.report.findUnique({ where: { id: reportId } });
-    if (!report) return res.status(404).json({ message: 'Report not found' });
-    if (!report.image) return res.status(400).json({ message: 'Report has no original image to process' });
-
-    const DETECTOR_URL = process.env.DETECTOR_URL || 'http://localhost:8000/detect_url';
-    let isWaterlogged = null;
-    let processedImageUrl = null;
-
-    try {
-      const detRes = await fetch(DETECTOR_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url: report.image })
-      });
-
-      if (detRes && detRes.ok) {
-        const detData = await detRes.json();
-        console.log('🔁 Reprocess detector response for report', reportId, detData);
-
-        if (detData.waterlogged === true) isWaterlogged = true;
-        else if (detData.waterlogged === false) isWaterlogged = false;
-
-        if (detData.processed_image) {
-          try {
-            const procRes = await cloudinary.uploader.upload(detData.processed_image, {
-              folder: 'water-logging-processed',
-              resource_type: 'image',
-              quality: 'auto',
-              fetch_format: 'auto'
-            });
-            processedImageUrl = procRes.secure_url;
-            console.log('✅ Reprocessed image uploaded:', processedImageUrl);
-          } catch (uploadErr) {
-            console.error('❌ Reprocessed upload failed:', uploadErr);
-            if (typeof detData.processed_image === 'string' && detData.processed_image.startsWith('data:image')) {
-              processedImageUrl = detData.processed_image;
-              console.log('ℹ️ Using reprocessed base64 fallback');
-            }
-          }
-        }
-      } else {
-        const errText = await (detRes.text().catch(() => ''));
-        console.warn('⚠️ Reprocess detector not OK:', detRes && detRes.status, errText);
-      }
-    } catch (err) {
-      console.error('❌ Reprocess detector call failed:', err);
-    }
-
-    const update = await prisma.report.update({
-      where: { id: reportId },
-      data: {
-        processed_image: processedImageUrl,
-        is_waterlogged: isWaterlogged,
-        is_rejected: isWaterlogged === false ? true : undefined,
-        rejected_at: isWaterlogged === false ? new Date() : undefined
-      }
-    });
-
-    res.json({ message: 'Reprocessed', report: update });
-  } catch (err) {
-    console.error('REPROCESS REPORT ERROR:', err);
-    res.status(500).json({ message: 'Internal server error' });
   }
 };
 

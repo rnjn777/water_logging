@@ -996,7 +996,6 @@ body {
             <th>Status</th>
             <th>Reported At</th>
             <th>Proof</th>
-            <th>Waterlogged</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -1178,19 +1177,23 @@ function renderReports() {
         <td class="timestamp">${report.timestamp || '—'}</td>
 
         <td>
-  ${report.processedImage ? `
-    <img 
-      src="${report.processedImage}"
-      class="proof-thumb"
-      onclick="viewImage('${report.id}', event)"
-      title="Click to view processed image (preferred)"
-    />
-  ` : report.image ? `
+  ${report.image ? `
     <img 
       src="${report.image}"
       class="proof-thumb"
       onclick="viewImage('${report.id}', event)"
       title="Click to view image"
+    />
+  ` : '<span class="no-proof">—</span>'}
+</td>
+
+        <td>
+  ${report.processedImage ? `
+    <img 
+      src="${report.processedImage}"
+      class="proof-thumb"
+      onclick="viewProcessedImage('${report.id}', event)"
+      title="Click to view processed image"
     />
   ` : '<span class="no-proof">—</span>'}
 </td>
@@ -1521,21 +1524,9 @@ function closeViewReportModal() {
 function viewImage(reportId, event) {
   event.stopPropagation();
   const report = reports.find(r => r.id === reportId);
-  if (!report) return;
+  if (!report || !report.image) return;
 
-  const imgSrc = report.processedImage || report.image;
-  if (!imgSrc) return;
-
-  document.getElementById('modalImage').src = imgSrc;
-  const infoEl = document.getElementById('imageInfo');
-  if (infoEl) {
-    if (report.processedImage) {
-      infoEl.textContent = `Processed Image - Waterlogged: ${report.isWaterlogged ? 'Yes' : (report.isWaterlogged === false ? 'No' : 'Unknown')}`;
-    } else {
-      infoEl.textContent = 'Photo Proof';
-    }
-  }
-
+  document.getElementById('modalImage').src = report.image;
   document.getElementById('imageModal').style.display = 'flex';
 }
 
@@ -1798,9 +1789,13 @@ renderReports();
 
 <script>
 function viewProcessedImage(reportId, event) {
-  // New behavior: delegate to viewImage which prefers processedImage automatically
   if (event) event.stopPropagation();
-  viewImage(reportId, event);
+  const report = reports.find(r => r.id === reportId);
+  if (!report || !report.processedImage) return;
+
+  document.getElementById('modalImage').src = report.processedImage;
+  document.getElementById('imageInfo').textContent = `Processed Image - Waterlogged: ${report.isWaterlogged ? 'Yes' : 'No'}`;
+  document.getElementById('imageModal').style.display = 'flex';
 }
 </script>
 
