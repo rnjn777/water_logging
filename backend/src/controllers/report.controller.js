@@ -269,17 +269,31 @@ export const recalculateTrustScores = async (req, res) => {
 };
 
 /**
- * DELETE /api/reports/rejected
- * Admin deletes all unapproved reports
+ * DELETE /api/reports/clear-all
+ * Admin clears all reports and resets user counters
  */
-export const deleteRejectedReports = async (req, res) => {
+export const clearAllReports = async (req, res) => {
   try {
-    const result = await prisma.report.deleteMany({
-      where: { is_approved: false }
+    console.log("🗑️ Admin clearing all reports...");
+
+    // Reset all user counters
+    await prisma.user.updateMany({
+      data: {
+        total_reports: 0,
+        approved_reports: 0,
+        trust_score: 0
+      }
     });
-    res.json({ message: `Deleted ${result.count} rejected reports` });
+
+    // Delete all reports
+    const deleteResult = await prisma.report.deleteMany({});
+
+    console.log(`✅ Cleared ${deleteResult.count} reports and reset all user counters`);
+    res.json({
+      message: `Successfully cleared ${deleteResult.count} reports and reset all user trust scores to 0%`
+    });
   } catch (err) {
-    console.error("DELETE REJECTED ERROR:", err);
-    res.status(500).json({ message: "Failed to delete reports" });
+    console.error("CLEAR ALL REPORTS ERROR:", err);
+    res.status(500).json({ message: "Failed to clear reports" });
   }
 };

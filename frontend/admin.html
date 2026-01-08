@@ -98,6 +98,24 @@ body {
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
 }
 
+.clear-btn {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.clear-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+}
+
 .logout-btn {
   background: linear-gradient(135deg, #dc2626, #ef4444);
   border: none;
@@ -871,6 +889,7 @@ body {
     </div>
     <div class="header-actions">
       <button class="recalc-btn" onclick="recalculateTrustScores()">🔄 Recalc Trust</button>
+      <button class="clear-btn" onclick="clearAllReports()">🗑️ Clear All</button>
       <button class="logout-btn" onclick="logout()">🚪 Logout</button>
     </div>
   </div>
@@ -1335,6 +1354,35 @@ async function recalculateTrustScores() {
   } catch (err) {
     console.error('❌ Recalculation failed:', err);
     showNotification(`❌ Recalculation failed: ${err.message}`, 'error');
+  }
+}
+
+async function clearAllReports() {
+  const confirmed = confirm('⚠️ WARNING: This will permanently delete ALL reports and reset ALL user trust scores to 0%. This action cannot be undone. Are you sure?');
+
+  if (!confirmed) return;
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/api/reports/clear-all`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const result = await res.json();
+    console.log('✅ All reports cleared:', result);
+    showNotification(`✅ ${result.message}`, 'success');
+
+    // Reload reports (should be empty now)
+    await loadReportsFromAPI();
+  } catch (err) {
+    console.error('❌ Clear failed:', err);
+    showNotification(`❌ Clear failed: ${err.message}`, 'error');
   }
 }
 

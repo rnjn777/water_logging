@@ -6,7 +6,8 @@ import {
   createReport,
   approveReport,
   deleteRejectedReports,
-  recalculateTrustScores
+  recalculateTrustScores,
+  clearAllReports
 } from "../controllers/report.controller.js";
 
 const router = express.Router();
@@ -46,5 +47,11 @@ router.delete("/rejected", auth, isAdmin, deleteRejectedReports);
  * Admin recalculates trust scores
  */
 router.post("/recalculate-trust", auth, isAdmin, recalculateTrustScores);
+
+/**
+ * DELETE /api/reports/clear-all
+ * Admin clears all reports and resets counters
+ */
+router.delete("/clear-all", auth, isAdmin, clearAllReports);
 
 export default router;
