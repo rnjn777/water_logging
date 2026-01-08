@@ -1653,15 +1653,31 @@ function calculateFloodRisk(rainfall, elevation) {
 }
 
 function enableReportMode() {
-  map.getContainer().style.cursor = 'crosshair';
+  // Toggle report mode on/off
+  reportMode = !reportMode;
 
-  map.once('click', async function (e) {
+  const btn = document.getElementById('reportBtn');
+  if (reportMode) {
+    if (btn) btn.textContent = '✖ Cancel Report';
+    map.getContainer().style.cursor = 'crosshair';
+  } else {
+    if (btn) btn.textContent = '➕ Report Waterlogging';
+    map.getContainer().style.cursor = '';
+  }
+}
+
+// Global click handler: show risk on any click, or open report workflow when reportMode is active
+map.on('click', async function (e) {
+  const lat = e.latlng.lat;
+  const lng = e.latlng.lng;
+
+  if (reportMode) {
+    // single-click behavior for report: reset mode
+    reportMode = false;
+    const btn = document.getElementById('reportBtn');
+    if (btn) btn.textContent = '➕ Report Waterlogging';
     map.getContainer().style.cursor = '';
 
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
-
-    // 1️⃣ Check duplicates
     const check = hasNearbyReport(lat, lng, 100);
     if (check.found) {
       showDuplicateWarning(check.reports);
@@ -1669,7 +1685,6 @@ function enableReportMode() {
     }
 
     try {
-      // Try backend first for consistent scoring
       let rainfall = 0;
       let elevation = 0;
       let riskScore = null;
@@ -1680,30 +1695,38 @@ function enableReportMode() {
         elevation = result.elevation ?? 0;
         riskScore = result.floodRiskScore ?? result.floodRisk ?? null;
       } catch (backendErr) {
-        // Backend failed — fallback to client-side calculation
         console.warn('Backend risk API failed, falling back to client calc', backendErr);
         rainfall = await getRainfall(lat, lng);
         elevation = await getElevation(lat, lng);
         riskScore = calculateFloodRisk(rainfall, elevation);
       }
 
-      // If backend returned no explicit score, compute locally
-      if (riskScore == null) {
-        riskScore = calculateFloodRisk(rainfall, elevation);
-      }
+      if (riskScore == null) riskScore = calculateFloodRisk(rainfall, elevation);
 
-      // Show result BEFORE report
       showFloodRiskModal(riskScore, rainfall, elevation);
-
-      // Continue to report form
       openReportModal(lat, lng, false);
     } catch (err) {
       console.error('Flood risk error:', err);
       showWarningModal('Error', 'Failed to calculate flood risk');
       openReportModal(lat, lng, false);
     }
-  });
-}
+
+    return;
+  }
+
+  // Non-report click: show quick risk info
+  try {
+    const result = await fetchFloodRisk(lat, lng);
+    const rainfall = result.rainfall_mm ?? result.rainfall ?? 0;
+    const elevation = result.elevation ?? 0;
+    const riskScore = result.floodRiskScore ?? result.floodRisk ?? calculateFloodRisk(rainfall, elevation);
+
+    showFloodRiskModal(riskScore, rainfall, elevation);
+  } catch (err) {
+    console.error('Flood risk error:', err);
+    showWarningModal('Error', 'Failed to calculate flood risk');
+  }
+});
 function showFloodRiskModal(score, rain, elevation) {
   const level =
     score > 70 ? "🔴 HIGH RISK" :
