@@ -1813,6 +1813,45 @@ function updateLegend() {
 
   document.querySelector(".high").style.background = "#dc2626";
 }
+function compressImage(base64String) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Calculate new dimensions (max 800px width/height)
+      let { width, height } = img;
+      const maxSize = 800;
+
+      if (width > height) {
+        if (width > maxSize) {
+          height = (height * maxSize) / width;
+          width = maxSize;
+        }
+      } else {
+        if (height > maxSize) {
+          width = (width * maxSize) / height;
+          height = maxSize;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Draw and compress
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Compress to JPEG with 0.8 quality
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+      resolve(compressedBase64);
+    };
+
+    img.onerror = reject;
+    img.src = base64String;
+  });
+}
+
 async function submitReport() {
   if (!currentReportLatLng) {
     showWarningModal("Error", "Please select a location first");
@@ -1834,32 +1873,52 @@ async function submitReport() {
     return;
   }
 
- const payload = {
+  // Show loading state
+  const submitBtn = document.getElementById("submitReportBtn");
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = "Submitting...";
+  submitBtn.disabled = true;
+
+  // Compress image if present
+  let processedImageBase64 = currentReportImageBase64;
+  if (currentReportImageBase64) {
+    try {
+      processedImageBase64 = await compressImage(currentReportImageBase64);
+    } catch (err) {
+      console.warn("Image compression failed, using original:", err);
+    }
+  }
+
+  const payload = {
     latitude: Number(currentReportLatLng.lat),
     longitude: Number(currentReportLatLng.lng),
     location: locationName,
     severity,
     rainIntensity: "medium",
-
-    // 🔵 THIS WAS MISSING
-    imageBase64: currentReportImageBase64 || null
+    imageBase64: processedImageBase64 || null
   };
-  console.log("IMAGE DEBUG 👉",
-  currentReportImageBase64?.substring(0, 50),
-  currentReportImageBase64?.length
-);
 
+  console.log("Submitting report...", {
+    hasImage: !!processedImageBase64,
+    imageSize: processedImageBase64?.length || 0
+  });
 
   try {
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     const res = await fetch(`${API_BASE_URL}/api/reports`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
     const data = await res.json();
 
     if (!res.ok) {
@@ -1870,8 +1929,16 @@ async function submitReport() {
     closeReportModal();
     loadReportsFromDB(); // refresh map
   } catch (err) {
-    console.error(err);
-    showWarningModal("Error", err.message);
+    console.error("Submit error:", err);
+    if (err.name === 'AbortError') {
+      showWarningModal("Timeout", "Request timed out. Please try again.");
+    } else {
+      showWarningModal("Error", err.message || "Failed to submit report");
+    }
+  } finally {
+    // Reset button state
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
   }
 }
 

@@ -35,12 +35,28 @@ let imageUrl = null;
 if (imageBase64) {
   console.log("Uploading image to Cloudinary...");
 
-  const upload = await cloudinary.uploader.upload(imageBase64, {
-    folder: "water-logging-reports",
-    resource_type: "image"
-  });
+  try {
+    // Add timeout to Cloudinary upload (30 seconds)
+    const uploadPromise = cloudinary.uploader.upload(imageBase64, {
+      folder: "water-logging-reports",
+      resource_type: "image",
+      timeout: 30000, // 30 second timeout
+      // Optimize image on upload
+      quality: "auto",
+      fetch_format: "auto",
+      width: 800,
+      height: 800,
+      crop: "limit"
+    });
 
-  imageUrl = upload.secure_url;
+    const uploadResult = await uploadPromise;
+    imageUrl = uploadResult.secure_url;
+    console.log("✅ Image uploaded successfully");
+  } catch (cloudinaryError) {
+    console.error("❌ Cloudinary upload failed:", cloudinaryError);
+    // Continue without image rather than failing the entire report
+    console.log("⚠️ Continuing without image due to upload failure");
+  }
 }
 
 
@@ -57,11 +73,18 @@ if (imageBase64) {
       }
     });
 
-    await prisma.user.update({
-      where: { id: req.user.userId },
-      data: { total_reports: { increment: 1 } }
-    });
+    // Update user counters with timeout
+    await Promise.race([
+      prisma.user.update({
+        where: { id: req.user.userId },
+        data: { total_reports: { increment: 1 } }
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database timeout')), 10000)
+      )
+    ]);
 
+    console.log(`✅ Report created: ${report.id} for user ${req.user.userId}`);
     res.status(201).json(report);
   } catch (err) {
     console.error("CREATE REPORT ERROR:", err);
