@@ -22,5 +22,5 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5001; // ✅ IMPORTANT for Render
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT} - v1.1`);
 });
