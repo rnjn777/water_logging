@@ -32,6 +32,8 @@ model Report {
   location      String
   rainIntensity String
   image         String?
+  processed_image String?
+  is_waterlogged Boolean?
   user_id       Int?
   is_approved   Boolean   @default(false)
   is_rejected   Boolean   @default(false)

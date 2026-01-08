@@ -31,6 +31,8 @@ export const createReport = async (req, res) => {
     }
 
 let imageUrl = null;
+let processedImageUrl = null;
+let isWaterlogged = null;
 
 if (imageBase64) {
   console.log("Uploading image to Cloudinary...");
@@ -51,7 +53,44 @@ if (imageBase64) {
 
     const uploadResult = await uploadPromise;
     imageUrl = uploadResult.secure_url;
-    console.log("✅ Image uploaded successfully");
+    console.log("✅ Image uploaded successfully", imageUrl);
+
+    // Call detector service (prefer URL endpoint so we can pass Cloudinary URL)
+    const DETECTOR_URL = process.env.DETECTOR_URL || 'http://localhost:8000/detect_url';
+
+    try {
+      const detRes = await fetch(DETECTOR_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: imageUrl })
+      });
+
+      if (detRes && detRes.ok) {
+        const detData = await detRes.json();
+        isWaterlogged = detData.waterlogged === true;
+
+        if (detData.processed_image) {
+          // Upload processed image (base64 data URI) to Cloudinary
+          try {
+            const procRes = await cloudinary.uploader.upload(detData.processed_image, {
+              folder: 'water-logging-processed',
+              resource_type: 'image',
+              quality: 'auto',
+              fetch_format: 'auto'
+            });
+            processedImageUrl = procRes.secure_url;
+            console.log('✅ Processed image uploaded:', processedImageUrl);
+          } catch (uploadErr) {
+            console.error('❌ Failed to upload processed image:', uploadErr);
+          }
+        }
+      } else {
+        console.warn('⚠️ Detector did not return OK:', detRes && detRes.status);
+      }
+    } catch (detectorError) {
+      console.error('❌ Detector request failed:', detectorError);
+    }
+
   } catch (cloudinaryError) {
     console.error("❌ Cloudinary upload failed:", cloudinaryError);
     // Continue without image rather than failing the entire report
@@ -68,8 +107,13 @@ if (imageBase64) {
         severity: severity.toUpperCase(),
         rainIntensity,
         image: imageUrl,
+        processed_image: processedImageUrl,
+        is_waterlogged: isWaterlogged,
         user_id: req.user.userId,
-        is_approved: false
+        is_approved: false,
+        // If detector explicitly says NOT waterlogged, mark rejected immediately
+        is_rejected: isWaterlogged === false ? true : false,
+        rejected_at: isWaterlogged === false ? new Date() : null
       }
     });
 
