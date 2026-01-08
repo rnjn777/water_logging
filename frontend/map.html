@@ -1798,10 +1798,33 @@ function reportCurrentLocation() {
   });
 }
 async function fetchFloodRisk(lat, lng) {
-  const res = await fetch(`${API_BASE_URL}/api/risk?lat=${lat}&lng=${lng}`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch flood risk');
-  return data;
+  // Try backend first; if it fails, compute locally using Open-Meteo
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/risk?lat=${lat}&lng=${lng}`);
+    const data = await res.json().catch(() => null);
+    if (res.ok && data) return data;
+    // if backend responded with error status, fall through to local calc
+    console.warn('Backend /api/risk returned error or invalid JSON, falling back to client calc');
+  } catch (err) {
+    console.warn('Backend /api/risk unreachable, falling back to client calc', err);
+  }
+
+  // Local fallback: fetch rainfall & elevation and compute score
+  try {
+    const rainfall = await getRainfall(lat, lng);
+    const elevation = await getElevation(lat, lng);
+    const floodRiskScore = calculateFloodRisk(rainfall, elevation);
+    return {
+      lat,
+      lng,
+      elevation,
+      rainfall_mm: rainfall,
+      floodRiskScore,
+      level: floodRiskScore > 70 ? 'HIGH' : floodRiskScore > 40 ? 'MEDIUM' : 'LOW'
+    };
+  } catch (err) {
+    throw new Error('Failed to compute local flood risk: ' + err.message);
+  }
 }
 
 function openReportModal(lat, lng, isGPS) {
