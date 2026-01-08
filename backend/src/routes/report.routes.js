@@ -32,16 +32,16 @@ router.get("/admin", auth, isAdmin, getAllReportsAdmin);
 router.post("/", auth, createReport);
 
 /**
+ * PATCH /api/reports/:reportId/reject
+ * Admin rejects report (MUST be before :reportId/approve)
+ */
+router.patch("/:reportId/reject", auth, isAdmin, rejectReport);
+
+/**
  * PATCH /api/reports/:reportId/approve
  * Admin approves report
  */
 router.patch("/:reportId/approve", auth, isAdmin, approveReport);
-
-/**
- * PATCH /api/reports/:reportId/reject
- * Admin rejects report
- */
-router.patch("/:reportId/reject", auth, isAdmin, rejectReport);
 
 /**
  * DELETE /api/reports/rejected
