@@ -1661,7 +1661,7 @@ function enableReportMode() {
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
 
-    // 1️⃣ Check duplicates (existing logic)
+    // 1️⃣ Check duplicates
     const check = hasNearbyReport(lat, lng, 100);
     if (check.found) {
       showDuplicateWarning(check.reports);
@@ -1669,22 +1669,37 @@ function enableReportMode() {
     }
 
     try {
-      // 2️⃣ Fetch data
-      const rainfall = await getRainfall(lat, lng);
-      const elevation = await getElevation(lat, lng);
+      // Try backend first for consistent scoring
+      let rainfall = 0;
+      let elevation = 0;
+      let riskScore = null;
 
-      // 3️⃣ Calculate risk
-      const riskScore = calculateFloodRisk(rainfall, elevation);
+      try {
+        const result = await fetchFloodRisk(lat, lng);
+        rainfall = result.rainfall_mm ?? result.rainfall ?? 0;
+        elevation = result.elevation ?? 0;
+        riskScore = result.floodRiskScore ?? result.floodRisk ?? null;
+      } catch (backendErr) {
+        // Backend failed — fallback to client-side calculation
+        console.warn('Backend risk API failed, falling back to client calc', backendErr);
+        rainfall = await getRainfall(lat, lng);
+        elevation = await getElevation(lat, lng);
+        riskScore = calculateFloodRisk(rainfall, elevation);
+      }
 
-      // 4️⃣ Show result BEFORE report
+      // If backend returned no explicit score, compute locally
+      if (riskScore == null) {
+        riskScore = calculateFloodRisk(rainfall, elevation);
+      }
+
+      // Show result BEFORE report
       showFloodRiskModal(riskScore, rainfall, elevation);
 
-      // 5️⃣ Continue to report form
+      // Continue to report form
       openReportModal(lat, lng, false);
-
     } catch (err) {
-      console.error("Flood risk error:", err);
-      alert("Failed to calculate flood risk");
+      console.error('Flood risk error:', err);
+      showWarningModal('Error', 'Failed to calculate flood risk');
       openReportModal(lat, lng, false);
     }
   });
@@ -1694,6 +1709,11 @@ function showFloodRiskModal(score, rain, elevation) {
     score > 70 ? "🔴 HIGH RISK" :
     score > 40 ? "🟠 MEDIUM RISK" :
     "🟢 LOW RISK";
+  // remove existing modal if any
+  const existing = document.getElementById('riskModal');
+  if (existing) existing.remove();
+
+  const color = score > 70 ? '#dc2626' : score > 40 ? '#f97316' : '#10b981';
 
   const html = `
     <div id="riskModal" style="
@@ -1707,21 +1727,27 @@ function showFloodRiskModal(score, rain, elevation) {
     ">
       <div style="
         background: white;
-        padding: 24px;
+        padding: 0;
         border-radius: 14px;
-        max-width: 360px;
+        max-width: 420px;
+        width: 90%;
         text-align: center;
         font-family: Inter;
+        overflow: hidden;
       ">
-        <h2>Flood Risk Analysis</h2>
-        <h1>${level}</h1>
-        <p><strong>Risk Score:</strong> ${score}/100</p>
-        <p>🌧 Rainfall: ${rain} mm</p>
-        <p>🏔 Elevation: ${elevation} m</p>
-        <button onclick="document.getElementById('riskModal').remove()"
-          style="margin-top: 12px; padding: 10px 20px; font-weight: 700;">
-          Continue
-        </button>
+        <div style="background: ${color}; padding: 18px 16px; color: white; font-weight: 800; font-size: 18px;">
+          Flood Risk Analysis
+        </div>
+        <div style="padding: 18px;">
+          <h1 style="margin: 8px 0;">${level}</h1>
+          <p style="margin: 8px 0;"><strong>Risk Score:</strong> ${score}/100</p>
+          <p style="margin: 6px 0;">🌧 Rainfall: ${rain} mm</p>
+          <p style="margin: 6px 0;">🏔 Elevation: ${elevation} m</p>
+          <button onclick="document.getElementById('riskModal')?.remove()"
+            style="margin-top: 12px; padding: 10px 20px; font-weight: 700; border-radius: 8px; border: none; background: ${color}; color: white;">
+            Continue
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -2186,53 +2212,33 @@ function closeDuplicateWarning() {
   }
 }
 
-function enableReportMode() {
-  map.getContainer().style.cursor = 'crosshair';
-
-  map.once('click', async function (e) {
-    map.getContainer().style.cursor = '';
-
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
-
-    // 1️⃣ Check duplicates
-    const check = hasNearbyReport(lat, lng, 100);
-    if (check.found) {
-      showDuplicateWarning(check.reports);
-      return;
-    }
-
-    try {
-      // Use backend endpoint for consistent risk calculation
-      const result = await fetchFloodRisk(lat, lng);
-
-      const rainfall = result.rainfall_mm ?? result.rainfall ?? 0;
-      const elevation = result.elevation ?? 0;
-      const riskScore = result.floodRiskScore ?? result.floodRisk ?? calculateFloodRisk(rainfall, elevation);
-
-      // Show result BEFORE report
-      showFloodRiskModal(riskScore, rainfall, elevation);
-
-      // Continue to report form
-      openReportModal(lat, lng, false);
-    } catch (err) {
-      console.error("Flood risk error:", err);
-      alert("Failed to calculate flood risk");
-      openReportModal(lat, lng, false);
-    }
-  });
-}
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 15px;
-          font-weight: 700;
-          cursor: pointer;
-        ">OK</button>
+function showSuccessModal(title, message) {
+  const successHTML = `
+    <div id="successModal" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    ">
+      <div style="background: white; border-radius: 12px; padding: 28px; max-width: 420px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+        <div style="font-size: 36px; margin-bottom: 8px;">✅</div>
+        <h2 style="margin:0 0 12px 0; color: #1e293b; font-size: 20px; font-weight: 800;">${title}</h2>
+        <p style="margin:0 0 20px 0; color: #475569; font-size: 14px;">${message}</p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+          <button onclick="closeSuccessModal()" style="padding:10px 20px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:700; cursor:pointer;">OK</button>
+        </div>
       </div>
     </div>
   `;
-  
+
+  const existing = document.getElementById('successModal');
+  if (existing) existing.remove();
   document.body.insertAdjacentHTML('beforeend', successHTML);
 }
 
