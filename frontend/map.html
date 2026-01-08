@@ -1280,6 +1280,32 @@ function startRainAnimation() {
   rainWaveTimer = setInterval(spawnRainWaves, interval);
 }
 
+// Minimal safe implementation to prevent ReferenceError if full animation code is missing
+function spawnRainWaves() {
+  try {
+    // If a more advanced implementation exists elsewhere, it will override this function automatically.
+    // For now, perform no-op so animations don't throw and block other scripts.
+    return;
+  } catch (err) {
+    console.warn('spawnRainWaves failed (noop):', err);
+  }
+}
+
+// Ensure approved reports key exists and parse safely
+function loadApprovedReports() {
+  try {
+    const approved = JSON.parse(localStorage.getItem('approvedLocations') || '[]');
+    if (!Array.isArray(approved)) {
+      localStorage.setItem('approvedLocations', JSON.stringify([]));
+    }
+    return approved;
+  } catch (err) {
+    console.warn('loadApprovedReports parse failed, resetting approvedLocations:', err);
+    localStorage.setItem('approvedLocations', JSON.stringify([]));
+    return [];
+  }
+}
+
 function severityToWeight(sev) {
   if (!sev) return 0.3;
   sev = sev.toLowerCase();

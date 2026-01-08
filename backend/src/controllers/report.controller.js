@@ -58,54 +58,59 @@ if (imageBase64) {
     // Call detector service (prefer URL endpoint so we can pass Cloudinary URL)
     const DETECTOR_URL = process.env.DETECTOR_URL || 'http://localhost:8000/detect_url';
 
-    try {
-      const detRes = await fetch(DETECTOR_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url: imageUrl })
-      });
+    if (typeof fetch === 'undefined') {
+      // Older Node runtimes may not expose fetch globally (e.g., Node <18)
+      console.warn('⚠️ global fetch is not available in this Node runtime; skipping detector call. Set DETECTOR_URL to a reachable detector or upgrade Node runtime.');
+    } else {
+      try {
+        const detRes = await fetch(DETECTOR_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_url: imageUrl })
+        });
 
-      if (detRes && detRes.ok) {
-        const detData = await detRes.json();
-        console.log('🔎 Detector response:', detData);
+        if (detRes && detRes.ok) {
+          const detData = await detRes.json();
+          console.log('🔎 Detector response:', detData);
 
-        // Interpret waterlogged strictly only when explicitly present
-        if (detData.waterlogged === true) isWaterlogged = true;
-        else if (detData.waterlogged === false) isWaterlogged = false;
-        else isWaterlogged = null;
+          // Interpret waterlogged strictly only when explicitly present
+          if (detData.waterlogged === true) isWaterlogged = true;
+          else if (detData.waterlogged === false) isWaterlogged = false;
+          else isWaterlogged = null;
 
-        if (detData.processed_image) {
-          // Upload processed image (base64 data URI) to Cloudinary
-          try {
-            const procRes = await cloudinary.uploader.upload(detData.processed_image, {
-              folder: 'water-logging-processed',
-              resource_type: 'image',
-              quality: 'auto',
-              fetch_format: 'auto'
-            });
-            processedImageUrl = procRes.secure_url;
-            console.log('✅ Processed image uploaded:', processedImageUrl);
-          } catch (uploadErr) {
-            console.error('❌ Failed to upload processed image to Cloudinary:', uploadErr);
-            // Fallback: keep base64 data URI (detData.processed_image) so frontend can display it
+          if (detData.processed_image) {
+            // Upload processed image (base64 data URI) to Cloudinary
             try {
-              if (typeof detData.processed_image === 'string' && detData.processed_image.startsWith('data:image')) {
-                processedImageUrl = detData.processed_image;
-                console.log('ℹ️ Using processed image base64 as fallback (will be saved to DB)');
+              const procRes = await cloudinary.uploader.upload(detData.processed_image, {
+                folder: 'water-logging-processed',
+                resource_type: 'image',
+                quality: 'auto',
+                fetch_format: 'auto'
+              });
+              processedImageUrl = procRes.secure_url;
+              console.log('✅ Processed image uploaded:', processedImageUrl);
+            } catch (uploadErr) {
+              console.error('❌ Failed to upload processed image to Cloudinary:', uploadErr);
+              // Fallback: keep base64 data URI (detData.processed_image) so frontend can display it
+              try {
+                if (typeof detData.processed_image === 'string' && detData.processed_image.startsWith('data:image')) {
+                  processedImageUrl = detData.processed_image;
+                  console.log('ℹ️ Using processed image base64 as fallback (will be saved to DB)');
+                }
+              } catch (fallbackErr) {
+                console.error('❌ Processed image fallback failed:', fallbackErr);
               }
-            } catch (fallbackErr) {
-              console.error('❌ Processed image fallback failed:', fallbackErr);
             }
           }
+        } else {
+          // try to get error body for more info
+          let errText = '';
+          try { errText = await detRes.text(); } catch (e) {}
+          console.warn('⚠️ Detector did not return OK:', detRes && detRes.status, errText);
         }
-      } else {
-        // try to get error body for more info
-        let errText = '';
-        try { errText = await detRes.text(); } catch (e) {}
-        console.warn('⚠️ Detector did not return OK:', detRes && detRes.status, errText);
+      } catch (detectorError) {
+        console.error('❌ Detector request failed:', detectorError);
       }
-    } catch (detectorError) {
-      console.error('❌ Detector request failed:', detectorError);
     }
 
   } catch (cloudinaryError) {
@@ -116,23 +121,56 @@ if (imageBase64) {
 }
 
 
-    const report = await prisma.report.create({
-      data: {
-        latitude,
-        longitude,
-        location,
-        severity: severity.toUpperCase(),
-        rainIntensity,
-        image: imageUrl,
-        processed_image: processedImageUrl,
-        is_waterlogged: isWaterlogged,
-        user_id: req.user.userId,
-        is_approved: false,
-        // If detector explicitly says NOT waterlogged, mark rejected immediately
-        is_rejected: isWaterlogged === false ? true : false,
-        rejected_at: isWaterlogged === false ? new Date() : null
+    let report;
+    try {
+      report = await prisma.report.create({
+        data: {
+          latitude,
+          longitude,
+          location,
+          severity: severity.toUpperCase(),
+          rainIntensity,
+          image: imageUrl,
+          processed_image: processedImageUrl,
+          is_waterlogged: isWaterlogged,
+          user_id: req.user.userId,
+          is_approved: false,
+          // If detector explicitly says NOT waterlogged, mark rejected immediately
+          is_rejected: isWaterlogged === false ? true : false,
+          rejected_at: isWaterlogged === false ? new Date() : null
+        }
+      });
+
+    } catch (createErr) {
+      // This commonly happens if DB schema does not include the new columns (migration not applied).
+      console.error('❌ Prisma create failed when saving processed fields - falling back to minimal create:', createErr.message || createErr);
+
+      try {
+        // Retry without fields that may not exist on older DBs
+        report = await prisma.report.create({
+          data: {
+            latitude,
+            longitude,
+            location,
+            severity: severity.toUpperCase(),
+            rainIntensity,
+            image: imageUrl,
+            user_id: req.user.userId,
+            is_approved: false
+          }
+        });
+
+        console.warn('⚠️ Report created without processed_image/is_waterlogged fields. Please apply Prisma migration to add these columns on the database.');
+
+        // If detector said NOT waterlogged, mark a warning so admin can reprocess after migration
+        if (isWaterlogged === false) {
+          console.warn('⚠️ Detector indicated NOT waterlogged but DB could not record it. After running migration, call the reprocess endpoint to apply the rejection.');
+        }
+      } catch (fallbackErr) {
+        console.error('❌ Fallback create also failed:', fallbackErr);
+        return res.status(500).json({ message: 'Failed to submit report (DB create failed)' });
       }
-    });
+    }
 
     // Update user counters with timeout
     await Promise.race([
