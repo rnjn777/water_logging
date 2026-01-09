@@ -1,5 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_URL;
-// example: https://your-backend.onrender.com
+// Production backend URL (set this in your frontend environment):
+// example: https://water-logging.onrender.com
 
 export const getReports = async (token) => {
   const res = await fetch(`${API_BASE}/api/reports/admin`, {
