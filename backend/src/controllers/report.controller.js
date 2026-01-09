@@ -160,7 +160,7 @@ if (imageBase64) {
           }
 
           if (detData.processed_image && !detData.error) {
-            // Upload processed image (base64 data URI) to Cloudinary
+            // Try to upload to Cloudinary, but fallback to base64 if it fails
             try {
               const procRes = await cloudinary.uploader.upload(detData.processed_image, {
                 folder: 'water-logging-processed',
@@ -169,17 +169,13 @@ if (imageBase64) {
                 fetch_format: 'auto'
               });
               processedImageUrl = procRes.secure_url;
-              console.log('✅ Processed image uploaded:', processedImageUrl);
+              console.log('✅ Processed image uploaded to Cloudinary:', processedImageUrl);
             } catch (uploadErr) {
-              console.error('❌ Failed to upload processed image to Cloudinary:', uploadErr);
-              // Fallback: keep base64 data URI (detData.processed_image) so frontend can display it
-              try {
-                if (typeof detData.processed_image === 'string' && detData.processed_image.startsWith('data:image')) {
-                  processedImageUrl = detData.processed_image;
-                  console.log('ℹ️ Using processed image base64 as fallback (will be saved to DB)');
-                }
-              } catch (fallbackErr) {
-                console.error('❌ Processed image fallback failed:', fallbackErr);
+              console.warn('⚠️ Cloudinary upload failed (will save as base64 instead):', uploadErr.message);
+              // Fallback: keep base64 data URI so frontend can display it directly
+              if (typeof detData.processed_image === 'string' && detData.processed_image.startsWith('data:image')) {
+                processedImageUrl = detData.processed_image;
+                console.log('ℹ️ Using processed image base64 directly (Cloudinary not available or misconfigured)');
               }
             }
           }
