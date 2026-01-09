@@ -1081,8 +1081,16 @@ async function loadReportsFromAPI() {
       lng: report.longitude || 0,
       severity: (report.severity || 'MEDIUM').toLowerCase(),
       status: report.is_rejected ? 'rejected' : (report.is_approved ? 'approved' : 'pending'),
-      image: report.image || null,
-      processedImage: report.processed_image || null,
+    processedImage:
+  report.processed_image && !report.processed_image.includes('/image/fetch/')
+    ? report.processed_image
+    : null,
+
+image:
+  report.image && !report.image.includes('/image/fetch/')
+    ? report.image
+    : null,
+
       isWaterlogged: report.is_waterlogged === true,
       timestamp: report.createdAt ? new Date(report.createdAt).toLocaleString() : '—',
       userId: report.user_id,
@@ -1177,20 +1185,20 @@ function renderReports() {
 
         <td class="timestamp">${report.timestamp || '—'}</td>
 
-        <td>
-  ${report.processedImage ? `
+<td>
+  ${report.processedImage && !report.processedImage.includes('/image/fetch/') ? `
     <img 
       src="${report.processedImage}"
       class="proof-thumb"
       onclick="viewImage('${report.id}', event)"
-      title="Click to view processed image (preferred)"
+      title="Processed Image"
     />
-  ` : report.image ? `
+  ` : report.image && !report.image.includes('/image/fetch/') ? `
     <img 
       src="${report.image}"
       class="proof-thumb"
       onclick="viewImage('${report.id}', event)"
-      title="Click to view image"
+      title="Original Image"
     />
   ` : '<span class="no-proof">—</span>'}
 </td>
