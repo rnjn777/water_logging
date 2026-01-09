@@ -1,10 +1,9 @@
 const API_BASE_URL = "https://water-logging.onrender.com";
+
 fetch(`${API_BASE_URL}/api/reports`)
   .then(res => res.json())
   .then(data => {
     console.log("Reports from backend:", data);
-  })
-  .catch(err => console.error("Error fetching reports:", err));
 
     data.forEach(report => {
       L.circleMarker([report.latitude, report.longitude], {
@@ -21,7 +20,8 @@ fetch(`${API_BASE_URL}/api/reports`)
       .bindPopup(`
         <b>${report.location}</b><br>
         Severity: ${report.severity}<br>
-        Rain: ${report.rainIntensity}
+        Rain: ${report.rainIntensity}<br>
+        Waterlogged: ${report.is_waterlogged === true ? "YES" : "NO"}
       `);
     });
   })

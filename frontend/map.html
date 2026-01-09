@@ -1213,7 +1213,7 @@ select:focus {
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
 <script>
-  const API_BASE_URL = "https://water-logging.onrender.com";
+const API_BASE_URL = "https://water-logging.onrender.com";
 let rainWaveLayers = [];
 let rainWaveTimer = null;
 let rainLevel = "Light";
@@ -2103,9 +2103,13 @@ async function submitReport() {
   });
 
   try {
+    console.log(`🌐 Submitting report to: ${API_BASE_URL}/api/reports`);
+    console.log(`📤 Payload size: ${JSON.stringify(payload).length} bytes`);
+    console.log(`📤 Has image: ${!!processedImageBase64}`);
+    
     // Add timeout to prevent hanging
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 30 second timeout
 
     const res = await fetch(`${API_BASE_URL}/api/reports`, {
       method: "POST",
@@ -2118,19 +2122,43 @@ async function submitReport() {
     });
 
     clearTimeout(timeoutId);
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.message || "Submit failed");
+    console.log(`📥 Response status: ${res.status} ${res.statusText}`);
+    
+    // Read response body once
+    const responseText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (jsonErr) {
+      console.error(`❌ Failed to parse JSON response. Status: ${res.status}, Body: ${responseText}`);
+      throw new Error(`Server error (${res.status}): ${responseText || res.statusText}`);
     }
 
+    if (!res.ok) {
+      console.error(`❌ Server returned error:`, data);
+      throw new Error(data.message || `Server error: ${res.status} ${res.statusText}`);
+    }
+
+    console.log(`✅ Report submitted successfully:`, data);
     showSuccessModal("Success", "Report submitted successfully");
     closeReportModal();
     loadReportsFromDB(); // refresh map
   } catch (err) {
-    console.error("Submit error:", err);
+    console.error("❌ Submit error details:", err);
+    console.error("❌ Error name:", err.name);
+    console.error("❌ Error message:", err.message);
+    console.error("❌ API_BASE_URL was:", API_BASE_URL);
+    
     if (err.name === 'AbortError') {
-      showWarningModal("Timeout", "Request timed out. Please try again.");
+      showWarningModal("Timeout", "Request timed out. Please try again. Make sure backend is running on " + API_BASE_URL);
+    } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+      showWarningModal("Connection Error", 
+        `Cannot connect to backend at ${API_BASE_URL}. \n\n` +
+        `Make sure:\n` +
+        `1. Backend is running (check terminal)\n` +
+        `2. Backend is on port 5001\n` +
+        `3. Try opening http://localhost:5001 in browser to test`
+      );
     } else {
       showWarningModal("Error", err.message || "Failed to submit report");
     }
