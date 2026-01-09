@@ -4,7 +4,7 @@ import os
 from PIL import Image, ImageDraw
 import io
 import base64
-import urllib.request
+import requests
 from io import BytesIO
 
 app = FastAPI(title="Waterlogging Detector API")
@@ -98,10 +98,11 @@ async def detect_from_url(payload: dict):
     # fetch image bytes
     try:
         print(f"📥 [/detect_url] Fetching image from URL...")
-        req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'})
-        with urllib.request.urlopen(req, timeout=15) as response:
-            data = response.read()
-            image = Image.open(BytesIO(data)).convert("RGB")
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        response = requests.get(image_url, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.content
+        image = Image.open(BytesIO(data)).convert("RGB")
         print(f"✅ [/detect_url] Image fetched successfully: {image.size}")
     except Exception as e:
         print(f"❌ [/detect_url] Failed to fetch image: {e}")
