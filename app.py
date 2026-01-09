@@ -42,39 +42,48 @@ def _annotate_image_with_boxes(image, boxes):
 
 @app.post("/detect")
 async def detect_waterlogging(file: UploadFile = File(...)):
-    # Read uploaded image
-    contents = await file.read()
-    image = Image.open(io.BytesIO(contents)).convert("RGB")
+    try:
+        # Read uploaded image
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents)).convert("RGB")
 
-    # Run detection
-    results = model(image, conf=0.65, verbose=False)
-    boxes = results[0].boxes
+        # Run detection
+        results = model(image, conf=0.65, verbose=False)
+        boxes = results[0].boxes
 
-    # Apply strict filters
-    img_w, img_h = image.size
-    base_w, base_h = 640, 640
+        # Apply strict filters
+        img_w, img_h = image.size
+        base_w, base_h = 640, 640
 
-    waterlogged = False
-    detections = []
+        waterlogged = False
+        detections = []
 
-    for box in boxes:
-        xyxy = box.xyxy[0].cpu().numpy()
-        area_ratio = ((xyxy[2]-xyxy[0]) * (xyxy[3]-xyxy[1])) / (base_w * base_h)
-        conf = float(box.conf[0])
+        for box in boxes:
+            xyxy = box.xyxy[0].cpu().numpy()
+            area_ratio = ((xyxy[2]-xyxy[0]) * (xyxy[3]-xyxy[1])) / (base_w * base_h)
+            conf = float(box.conf[0])
 
-        if area_ratio >= 0.01 and conf >= 0.65:  # strict criteria
-            waterlogged = True
-            detections.append({"conf": conf, "area_ratio": area_ratio})
+            if area_ratio >= 0.01 and conf >= 0.65:  # strict criteria
+                waterlogged = True
+                detections.append({"conf": conf, "area_ratio": area_ratio})
 
-    processed_image = _annotate_image_with_boxes(image.copy(), boxes) if len(boxes) > 0 else None
+        processed_image = None
+        try:
+            processed_image = _annotate_image_with_boxes(image.copy(), boxes) if len(boxes) > 0 else None
+        except Exception as e:
+            print(f"⚠️ Image annotation failed: {e}")
+            processed_image = None
 
-    return {
-        "waterlogged": waterlogged,
-        "confidence": float(boxes.conf[0]) if len(boxes) > 0 else 0.0,
-        "detections": detections,
-        "image_filename": file.filename,
-        "processed_image": processed_image
-    }
+        return {
+            "waterlogged": waterlogged,
+            "confidence": float(boxes.conf[0]) if len(boxes) > 0 else 0.0,
+            "detections": detections,
+            "image_filename": file.filename,
+            "processed_image": processed_image
+        }
+    except Exception as e:
+        print(f"❌ Detect endpoint error: {e}")
+        return {"error": str(e), "waterlogged": False, "detections": [], "processed_image": None}
 
 
 @app.post("/detect_url")
@@ -84,7 +93,7 @@ async def detect_from_url(payload: dict):
     
     if not image_url:
         print("⚠️ [/detect_url] Missing image_url in payload")
-        return {"error": "Missing image_url"}
+        return {"error": "Missing image_url", "waterlogged": False, "detections": [], "processed_image": None}
 
     # fetch image bytes
     try:
@@ -95,12 +104,16 @@ async def detect_from_url(payload: dict):
         print(f"✅ [/detect_url] Image fetched successfully: {image.size}")
     except Exception as e:
         print(f"❌ [/detect_url] Failed to fetch image: {e}")
-        return {"error": f"Failed to fetch image: {e}"}
+        return {"error": f"Failed to fetch image: {e}", "waterlogged": False, "detections": [], "processed_image": None}
 
-    print(f"🎯 [/detect_url] Running YOLO model...")
-    results = model(image, conf=0.6, verbose=False)
-    boxes = results[0].boxes
-    print(f"📊 [/detect_url] Model returned {len(boxes)} boxes")
+    try:
+        print(f"🎯 [/detect_url] Running YOLO model...")
+        results = model(image, conf=0.6, verbose=False)
+        boxes = results[0].boxes
+        print(f"📊 [/detect_url] Model returned {len(boxes)} boxes")
+    except Exception as e:
+        print(f"❌ [/detect_url] Model inference failed: {e}")
+        return {"error": f"Model inference failed: {e}", "waterlogged": False, "detections": [], "processed_image": None}
 
     img_w, img_h = image.size
     base_w, base_h = 640, 640
@@ -118,7 +131,14 @@ async def detect_from_url(payload: dict):
             detections.append({"conf": conf, "area_ratio": area_ratio})
             print(f"  ✓ Box {len(detections)}: conf={conf:.3f}, area_ratio={area_ratio:.4f}")
 
-    processed_image = _annotate_image_with_boxes(image.copy(), boxes) if len(boxes) > 0 else None
+    processed_image = None
+    try:
+        if len(boxes) > 0:
+            processed_image = _annotate_image_with_boxes(image.copy(), boxes)
+            print(f"✅ Processed image generated successfully")
+    except Exception as e:
+        print(f"⚠️ Image annotation failed (will continue without it): {e}")
+        processed_image = None
 
     result = {
         "waterlogged": waterlogged,

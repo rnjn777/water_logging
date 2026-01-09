@@ -148,12 +148,18 @@ if (imageBase64) {
           const detData = await detRes.json();
           console.log('🔎 Detector response:', detData);
 
-          // Interpret waterlogged strictly only when explicitly present
-          if (detData.waterlogged === true) isWaterlogged = true;
-          else if (detData.waterlogged === false) isWaterlogged = false;
-          else isWaterlogged = null;
+          // Handle detector error in response body
+          if (detData.error) {
+            console.warn('⚠️ Detector returned error in response:', detData.error);
+            // Continue anyway — detector errors don't fail the report submission
+          } else {
+            // Interpret waterlogged strictly only when explicitly present
+            if (detData.waterlogged === true) isWaterlogged = true;
+            else if (detData.waterlogged === false) isWaterlogged = false;
+            else isWaterlogged = null;
+          }
 
-          if (detData.processed_image) {
+          if (detData.processed_image && !detData.error) {
             // Upload processed image (base64 data URI) to Cloudinary
             try {
               const procRes = await cloudinary.uploader.upload(detData.processed_image, {
