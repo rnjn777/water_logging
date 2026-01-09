@@ -47,9 +47,9 @@ async def detect_waterlogging(file: UploadFile = File(...)):
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
 
-    # Run detection
-    results = model(image, conf=0.5, verbose=False)
-    boxes = results[0].boxes
+        # Run detection
+        results = model(image, conf=0.5, verbose=False)
+        boxes = results[0].boxes
 
         # Apply strict filters
         img_w, img_h = image.size
@@ -63,9 +63,9 @@ async def detect_waterlogging(file: UploadFile = File(...)):
             area_ratio = ((xyxy[2]-xyxy[0]) * (xyxy[3]-xyxy[1])) / (base_w * base_h)
             conf = float(box.conf[0])
 
-        if area_ratio >= 0.005 and conf >= 0.5:  # strict criteria
-            waterlogged = True
-            detections.append({"conf": conf, "area_ratio": area_ratio})
+            if area_ratio >= 0.005 and conf >= 0.5:  # strict criteria
+                waterlogged = True
+                detections.append({"conf": conf, "area_ratio": area_ratio})
 
         processed_image = None
         try:
