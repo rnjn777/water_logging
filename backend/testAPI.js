@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-import http from "http";
+import https from "https";
 
 function makeRequest(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: "localhost",
-      port: 5001,
+      hostname: "water-logging.onrender.com",
+      port: 443,
       path: path,
       method: method,
       headers: {

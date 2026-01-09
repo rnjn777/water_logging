@@ -14,7 +14,7 @@ $loginBody = @{
     role = "ADMIN"
 } | ConvertTo-Json
 
-$loginRes = Invoke-WebRequest -Uri 'http://localhost:5001/api/auth/login' `
+$loginRes = Invoke-WebRequest -Uri 'https://water-logging.onrender.com/api/auth/login' `
   -Method POST `
   -Body $loginBody `
   -ContentType 'application/json' `
@@ -32,7 +32,7 @@ $token = $loginData.token
 Write-Host "2. Fetching Admin Reports (ALL reports - pending + approved)..."
 Write-Host ""
 
-$reportsRes = Invoke-WebRequest -Uri 'http://localhost:5001/api/reports/admin' `
+$reportsRes = Invoke-WebRequest -Uri 'https://water-logging.onrender.com/api/reports/admin' `
   -Headers @{"Authorization"="Bearer $token"} `
   -ContentType 'application/json' `
   -UseBasicParsing
@@ -59,8 +59,8 @@ Write-Host "SUCCESS: API Tests Complete!"
 Write-Host "========================================"
 Write-Host ""
 Write-Host "Open browser to:"
-Write-Host "  User: http://localhost:8000/index.html"
-Write-Host "  Admin: http://localhost:8000/admin.html"
+Write-Host "  User: https://water-logging-detector.onrender.com/detect"
+Write-Host "  Admin: https://water-logging-detector.onrender.com/detect"
 Write-Host ""
 Write-Host "Admin Credentials:"
 Write-Host "  Email: admin@test.com"

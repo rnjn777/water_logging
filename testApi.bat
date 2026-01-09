@@ -10,7 +10,7 @@ echo.
 echo 1️⃣  Testing Admin Login...
 echo.
 powershell -Command ^
-  "$response = Invoke-WebRequest -Uri 'http://localhost:5001/api/auth/login' ^
+  "$response = Invoke-WebRequest -Uri 'https://water-logging.onrender.com/api/auth/login' ^
     -Method POST ^
     -Body (ConvertTo-Json @{email='admin@test.com'; password='admin123'; role='ADMIN'}) ^
     -ContentType 'application/json' ^
@@ -22,7 +22,7 @@ powershell -Command ^
   Write-Host ''; ^
   Write-Host '2️⃣  Fetching Admin Reports with Token...'; ^
   Write-Host ''; ^
-  $reportsRes = Invoke-WebRequest -Uri 'http://localhost:5001/api/reports/admin' ^
+  $reportsRes = Invoke-WebRequest -Uri 'https://water-logging.onrender.com/api/reports/admin' ^
     -Headers @{'Authorization'='Bearer ' + $token} ^
     -ContentType 'application/json' ^
     -UseBasicParsing; ^
@@ -35,5 +35,5 @@ echo ========================================
 echo ✅ Tests Complete!
 echo ========================================
 echo.
-echo Open your browser to: http://localhost:8000/index.html
+echo Open your browser to: https://water-logging-detector.onrender.com/detect
 echo Admin Login: admin@test.com / admin123

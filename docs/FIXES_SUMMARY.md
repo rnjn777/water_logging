@@ -30,7 +30,7 @@
      - Admin reports are requested and returned
 
 #### 5. **API Base URLs** (all HTML files)
-   - Updated to point to localhost backend: `http://localhost:5001`
+   - Updated to point to production backend: `https://water-logging.onrender.com`
 
 ---
 
@@ -69,7 +69,7 @@ python -m http.server 8000
 ```
 
 #### **Step 3: Log in as Admin**
-1. Go to: `http://localhost:8000/index.html`
+1. Go to: `https://water-logging-detector.onrender.com/detect`
 2. Click "🔐 Admin Login"
 3. Enter credentials:
    - **Email**: `admin@test.com`

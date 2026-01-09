@@ -117,7 +117,7 @@ cd backend
 npm start
 ```
 
-Server runs on `http://localhost:5001`
+Server runs on `https://water-logging.onrender.com`
 
 ### Run Tests
 ```bash

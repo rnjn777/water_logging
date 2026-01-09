@@ -7,7 +7,7 @@ import cloudinary from "../config/cloudinary.js";
  */
 export const testDetector = async (req, res) => {
   try {
-    const DETECTOR_URL = process.env.DETECTOR_URL || 'http://localhost:8000/detect_url';
+    const DETECTOR_URL = process.env.DETECTOR_URL || 'https://water-logging-detector.onrender.com/detect';
     console.log('🧪 Testing detector at:', DETECTOR_URL);
 
     // Use a public test image URL
@@ -33,7 +33,7 @@ export const testDetector = async (req, res) => {
     res.status(500).json({
       message: 'Detector test failed',
       error: err.message,
-      detector_url: process.env.DETECTOR_URL || 'http://localhost:8000/detect_url',
+      detector_url: process.env.DETECTOR_URL || 'https://water-logging-detector.onrender.com/detect',
       hint: 'Ensure the detector service is running and reachable at the DETECTOR_URL. If using production, set DETECTOR_URL env var.'
     });
   }
@@ -131,7 +131,7 @@ if (imageBase64) {
     console.log("✅ Image uploaded successfully", imageUrl);
 
     // Call detector service (prefer URL endpoint so we can pass Cloudinary URL)
-    const DETECTOR_URL = process.env.DETECTOR_URL || 'http://localhost:8000/detect_url';
+    const DETECTOR_URL = process.env.DETECTOR_URL || 'https://water-logging-detector.onrender.com/detect';
 
     if (typeof fetch === 'undefined') {
       // Older Node runtimes may not expose fetch globally (e.g., Node <18)
@@ -384,7 +384,7 @@ export const reprocessReport = async (req, res) => {
     if (!report) return res.status(404).json({ message: 'Report not found' });
     if (!report.image) return res.status(400).json({ message: 'Report has no original image to process' });
 
-    const DETECTOR_URL = process.env.DETECTOR_URL || 'http://localhost:8000/detect_url';
+    const DETECTOR_URL = process.env.DETECTOR_URL || 'https://water-logging-detector.onrender.com/detect';
     let isWaterlogged = null;
     let processedImageUrl = null;
 
