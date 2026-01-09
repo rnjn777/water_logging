@@ -117,6 +117,7 @@ if (imageBase64) {
     const uploadPromise = cloudinary.uploader.upload(imageBase64, {
       folder: "water-logging-reports",
       resource_type: "image",
+      access_mode: "public",
       timeout: 30000, // 30 second timeout
       // Optimize image on upload
       quality: "auto",
