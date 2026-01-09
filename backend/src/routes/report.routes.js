@@ -7,6 +7,8 @@ import {
   approveReport,
   rejectReport,
   reprocessReport,
+  testDetector,
+  reportDiagnostic,
   deleteRejectedReports,
   recalculateTrustScores,
   clearAllReports
@@ -31,6 +33,18 @@ router.get("/admin", auth, isAdmin, getAllReportsAdmin);
  * User submits report (JWT required)
  */
 router.post("/", auth, createReport);
+
+/**
+ * POST /api/reports/test-detector
+ * Admin diagnostic endpoint to test detector connectivity
+ */
+router.post("/test-detector", auth, isAdmin, testDetector);
+
+/**
+ * GET /api/reports/:reportId/diagnostic
+ * Check diagnostic info for a specific report
+ */
+router.get("/:reportId/diagnostic", auth, isAdmin, reportDiagnostic);
 
 /**
  * PATCH /api/reports/:reportId/reject

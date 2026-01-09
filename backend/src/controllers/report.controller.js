@@ -2,9 +2,84 @@ import prisma from "../db.js";
 import cloudinary from "../config/cloudinary.js";
 
 /**
- * POST /api/reports
- * User submits report (with optional image)
+ * POST /api/reports/test-detector
+ * Admin-only diagnostic endpoint to test detector connectivity
  */
+export const testDetector = async (req, res) => {
+  try {
+    const DETECTOR_URL = process.env.DETECTOR_URL || 'http://localhost:8000/detect_url';
+    console.log('🧪 Testing detector at:', DETECTOR_URL);
+
+    // Use a public test image URL
+    const testImageUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Flooded_street_in_Bangkok_%28cropped%29.jpg/640px-Flooded_street_in_Bangkok_%28cropped%29.jpg';
+
+    const detRes = await fetch(DETECTOR_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: testImageUrl })
+    });
+
+    const detData = await detRes.json();
+    console.log('✅ Detector test response:', detData);
+
+    res.json({
+      message: 'Detector test completed',
+      detector_url: DETECTOR_URL,
+      status: detRes.status,
+      response: detData
+    });
+  } catch (err) {
+    console.error('❌ Detector test failed:', err.message);
+    res.status(500).json({
+      message: 'Detector test failed',
+      error: err.message,
+      detector_url: process.env.DETECTOR_URL || 'http://localhost:8000/detect_url',
+      hint: 'Ensure the detector service is running and reachable at the DETECTOR_URL. If using production, set DETECTOR_URL env var.'
+    });
+  }
+};
+
+/**
+ * GET /api/reports/:reportId/diagnostic
+ * Check the actual values stored in DB for a report
+ */
+export const reportDiagnostic = async (req, res) => {
+  try {
+    const reportId = Number(req.params.reportId);
+    if (isNaN(reportId)) return res.status(400).json({ message: 'Invalid report ID' });
+
+    const report = await prisma.report.findUnique({
+      where: { id: reportId },
+      select: {
+        id: true,
+        image: true,
+        processed_image: true,
+        is_waterlogged: true,
+        is_rejected: true,
+        is_approved: true,
+        createdAt: true,
+        user_id: true
+      }
+    });
+
+    if (!report) return res.status(404).json({ message: 'Report not found' });
+
+    res.json({
+      message: 'Report diagnostic',
+      report: {
+        ...report,
+        has_original_image: !!report.image,
+        has_processed_image: !!report.processed_image,
+        processed_image_type: report.processed_image ? (report.processed_image.startsWith('data:') ? 'base64_data_uri' : 'cloudinary_url') : null,
+        is_waterlogged_value: report.is_waterlogged,
+        is_rejected_value: report.is_rejected
+      }
+    });
+  } catch (err) {
+    console.error('Diagnostic error:', err);
+    res.status(500).json({ message: 'Diagnostic failed', error: err.message });
+  }
+};
 export const createReport = async (req, res) => {
   try {
     if (!req.user?.userId) {

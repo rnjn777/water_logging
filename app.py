@@ -9,8 +9,15 @@ from io import BytesIO
 
 app = FastAPI(title="Waterlogging Detector API")
 
+print("\n" + "="*60)
+print("🚀 WATERLOGGING DETECTOR API STARTING UP")
+print("="*60)
+
 # Load model once at startup
+print("📦 Loading YOLO model from best.pt...")
 model = YOLO("best.pt")  # your trained model
+print("✅ YOLO model loaded successfully")
+print("="*60 + "\n")
 
 
 def _annotate_image_with_boxes(image, boxes):
@@ -73,19 +80,27 @@ async def detect_waterlogging(file: UploadFile = File(...)):
 @app.post("/detect_url")
 async def detect_from_url(payload: dict):
     image_url = payload.get('image_url')
+    print(f"🔍 [/detect_url] Received request for image: {image_url}")
+    
     if not image_url:
+        print("⚠️ [/detect_url] Missing image_url in payload")
         return {"error": "Missing image_url"}
 
     # fetch image bytes
     try:
+        print(f"📥 [/detect_url] Fetching image from URL...")
         with urllib.request.urlopen(image_url, timeout=15) as response:
             data = response.read()
             image = Image.open(BytesIO(data)).convert("RGB")
+        print(f"✅ [/detect_url] Image fetched successfully: {image.size}")
     except Exception as e:
+        print(f"❌ [/detect_url] Failed to fetch image: {e}")
         return {"error": f"Failed to fetch image: {e}"}
 
+    print(f"🎯 [/detect_url] Running YOLO model...")
     results = model(image, conf=0.6, verbose=False)
     boxes = results[0].boxes
+    print(f"📊 [/detect_url] Model returned {len(boxes)} boxes")
 
     img_w, img_h = image.size
     base_w, base_h = 640, 640
@@ -101,16 +116,20 @@ async def detect_from_url(payload: dict):
         if area_ratio >= 0.01 and conf >= 0.65:
             waterlogged = True
             detections.append({"conf": conf, "area_ratio": area_ratio})
+            print(f"  ✓ Box {len(detections)}: conf={conf:.3f}, area_ratio={area_ratio:.4f}")
 
     processed_image = _annotate_image_with_boxes(image.copy(), boxes) if len(boxes) > 0 else None
 
-    return {
+    result = {
         "waterlogged": waterlogged,
         "confidence": float(boxes.conf[0]) if len(boxes) > 0 else 0.0,
         "detections": detections,
         "processed_image": processed_image,
         "image_url": image_url
     }
+    
+    print(f"✅ [/detect_url] Response: waterlogged={waterlogged}, detections={len(detections)}, has_processed_image={processed_image is not None}")
+    return result
 
 
 @app.get("/")
