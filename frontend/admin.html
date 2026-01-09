@@ -1465,7 +1465,7 @@ function rejectReport(reportId, event) {
 }
 
 function viewReport(reportId, event) {
-  if (event) event.stopPropagation();
+  if (event) event.stopImmediatePropagation();
 
 
   const report = reports.find(r => r.id === reportId);
