@@ -47,9 +47,9 @@ async def detect_waterlogging(file: UploadFile = File(...)):
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
 
-        # Run detection
-        results = model(image, conf=0.65, verbose=False)
-        boxes = results[0].boxes
+    # Run detection
+    results = model(image, conf=0.5, verbose=False)
+    boxes = results[0].boxes
 
         # Apply strict filters
         img_w, img_h = image.size
@@ -63,9 +63,9 @@ async def detect_waterlogging(file: UploadFile = File(...)):
             area_ratio = ((xyxy[2]-xyxy[0]) * (xyxy[3]-xyxy[1])) / (base_w * base_h)
             conf = float(box.conf[0])
 
-            if area_ratio >= 0.01 and conf >= 0.65:  # strict criteria
-                waterlogged = True
-                detections.append({"conf": conf, "area_ratio": area_ratio})
+        if area_ratio >= 0.005 and conf >= 0.5:  # strict criteria
+            waterlogged = True
+            detections.append({"conf": conf, "area_ratio": area_ratio})
 
         processed_image = None
         try:
@@ -106,14 +106,8 @@ async def detect_from_url(payload: dict):
         print(f"❌ [/detect_url] Failed to fetch image: {e}")
         return {"error": f"Failed to fetch image: {e}", "waterlogged": False, "detections": [], "processed_image": None}
 
-    try:
-        print(f"🎯 [/detect_url] Running YOLO model...")
-        results = model(image, conf=0.6, verbose=False)
-        boxes = results[0].boxes
-        print(f"📊 [/detect_url] Model returned {len(boxes)} boxes")
-    except Exception as e:
-        print(f"❌ [/detect_url] Model inference failed: {e}")
-        return {"error": f"Model inference failed: {e}", "waterlogged": False, "detections": [], "processed_image": None}
+    results = model(image, conf=0.5, verbose=False)
+    boxes = results[0].boxes
 
     img_w, img_h = image.size
     base_w, base_h = 640, 640
@@ -126,7 +120,7 @@ async def detect_from_url(payload: dict):
         area_ratio = ((xyxy[2]-xyxy[0]) * (xyxy[3]-xyxy[1])) / (base_w * base_h)
         conf = float(box.conf[0])
 
-        if area_ratio >= 0.01 and conf >= 0.65:
+        if area_ratio >= 0.005 and conf >= 0.5:
             waterlogged = True
             detections.append({"conf": conf, "area_ratio": area_ratio})
             print(f"  ✓ Box {len(detections)}: conf={conf:.3f}, area_ratio={area_ratio:.4f}")

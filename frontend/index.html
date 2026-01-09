@@ -526,6 +526,83 @@ body {
   cursor: pointer;
   font-weight: 600;
 }
+/* =========================
+   HERO VIDEO (TOMORROW.IO STYLE)
+========================= */
+
+.hero-video {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-bg-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 100%;
+  min-height: 100%;
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+  z-index: 0;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(2, 6, 23, 0.7),
+    rgba(2, 6, 23, 0.85)
+  );
+  z-index: 1;
+}
+
+.hero-video-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1100px;
+  padding: 0 40px;
+  text-align: center;
+}
+
+.hero-video-content h1 {
+  font-size: 64px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.15;
+  letter-spacing: -1.5px;
+  margin-bottom: 24px;
+}
+
+.hero-video-content p {
+  font-size: 20px;
+  color: #cbd5e1;
+  max-width: 720px;
+  margin: 0 auto 48px;
+  line-height: 1.6;
+}
+
+/* CTA spacing */
+.hero-cta {
+  margin-top: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-video-content h1 {
+    font-size: 40px;
+  }
+
+  .hero-video-content p {
+    font-size: 16px;
+  }
+}
+
 
 </style>
 </head>
@@ -560,20 +637,54 @@ body {
 </nav>
 
 <!-- HERO SECTION -->
-<section class="hero">
-  <div class="hero-content">
-    <div class="hero-badge">🚀 Smart City Solution</div>
-   
+<!-- HERO WITH VIDEO BACKGROUND -->
+<section class="hero-video">
+
+  <!-- Background Video -->
+  <video class="hero-bg-video" autoplay muted loop playsinline>
+    <!-- You can replace this with your own flood / rain video -->
+    <source src="https://drive.google.com/file/d/1lV8cCNZQloKuHryLDH8aXLwRSgB-MCcq/view?usp=sharing" type="video/mp4">
+  </video>
+
+  <!-- Dark Overlay -->
+  <div class="hero-overlay"></div>
+
+  <!-- Hero Content -->
+  <div class="hero-video-content">
+
     <h1>
-      <span class="gradient-text">Waterlogging</span><br>
+      Delhi Waterlogging<br>
       Monitoring & Hotspot Detection
     </h1>
-   
-    <p class="hero-description">
-      Real-time monitoring system for urban flood risk assessment.
-      Identify critical zones, report waterlogging incidents, and help build safer communities.
+
+    <p>
+      Real-time urban flood intelligence to detect critical waterlogging zones
+      and support faster municipal response.
     </p>
-   
+
+    <!-- CTA BUTTONS (REDIRECTS UNCHANGED) -->
+    <div class="login-section hero-cta">
+
+      <button class="login-btn user-login" onclick="openUserLogin()">
+        <span class="btn-icon">🚩</span>
+        <span>Report Waterlogging</span>
+      </button>
+
+      <button class="login-btn guest-login" onclick="window.location.href='guest_map.html'">
+        <span class="btn-icon">🗺️</span>
+        <span>View Live Map</span>
+      </button>
+
+      <button class="login-btn admin-login" onclick="openAdminLogin()">
+        <span class="btn-icon">📊</span>
+        <span>Authority Dashboard</span>
+      </button>
+
+    </div>
+
+  </div>
+</section>
+
     <!-- FEATURES -->
     <div class="features" id="features">
       <div class="feature-card">
