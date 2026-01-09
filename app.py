@@ -48,7 +48,7 @@ async def detect_waterlogging(file: UploadFile = File(...)):
         image = Image.open(io.BytesIO(contents)).convert("RGB")
 
         # Run detection
-        results = model(image, conf=0.5, verbose=False)
+        results = model(image, conf=0.1, verbose=False)
         boxes = results[0].boxes
 
         # Apply strict filters
@@ -63,7 +63,7 @@ async def detect_waterlogging(file: UploadFile = File(...)):
             area_ratio = ((xyxy[2]-xyxy[0]) * (xyxy[3]-xyxy[1])) / (base_w * base_h)
             conf = float(box.conf[0])
 
-            if area_ratio >= 0.005 and conf >= 0.5:  # strict criteria
+            if area_ratio >= 0.001 and conf >= 0.1:  # very low thresholds for testing
                 waterlogged = True
                 detections.append({"conf": conf, "area_ratio": area_ratio})
 
@@ -108,7 +108,7 @@ async def detect_from_url(payload: dict):
         print(f"❌ [/detect_url] Failed to fetch image: {e}")
         return {"error": f"Failed to fetch image: {e}", "waterlogged": None, "detections": [], "processed_image": None}
 
-    results = model(image, conf=0.5, verbose=False)
+    results = model(image, conf=0.1, verbose=False)
     boxes = results[0].boxes
 
     img_w, img_h = image.size
