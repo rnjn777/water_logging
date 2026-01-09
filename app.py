@@ -98,13 +98,14 @@ async def detect_from_url(payload: dict):
     # fetch image bytes
     try:
         print(f"📥 [/detect_url] Fetching image from URL...")
-        with urllib.request.urlopen(image_url, timeout=15) as response:
+        req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'})
+        with urllib.request.urlopen(req, timeout=15) as response:
             data = response.read()
             image = Image.open(BytesIO(data)).convert("RGB")
         print(f"✅ [/detect_url] Image fetched successfully: {image.size}")
     except Exception as e:
         print(f"❌ [/detect_url] Failed to fetch image: {e}")
-        return {"error": f"Failed to fetch image: {e}", "waterlogged": False, "detections": [], "processed_image": None}
+        return {"error": f"Failed to fetch image: {e}", "waterlogged": None, "detections": [], "processed_image": None}
 
     results = model(image, conf=0.5, verbose=False)
     boxes = results[0].boxes
