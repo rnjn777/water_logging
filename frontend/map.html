@@ -17,6 +17,8 @@
   background: #f97316;
 }
 
+
+
 .high {
   background: #dc2626;
 }
@@ -1103,7 +1105,12 @@ select:focus {
     <input type="checkbox" id="heatToggle" onchange="toggleHeatmap(this.checked)" checked />
   </div>
  <button id="reportMyLocationBtn" class="report-btn" onclick="reportCurrentLocation()" style="background: linear-gradient(135deg, #10b981, #059669);">📍 Report My Location</button>
-  
+  <button class="report-btn"
+  style="background:linear-gradient(135deg,#2563eb,#1d4ed8)"
+  onclick="checkFloodsNearMe()">
+  📍 Floods Near Me (500m)
+</button>
+
 </div>
 
 <div class="map-wrapper">
@@ -1228,6 +1235,232 @@ let currentReportLatLng = null;
 let currentReportImageBase64 = null;
 const REPORT_EXPIRY_MINUTES = 60;
 let reportMarkers = [];
+
+
+
+
+let alertCircle = null;
+let alertCenter = null;
+let alertRadius = 1000; // meters
+
+
+
+const locationCache = {};
+
+async function getLocationName(lat, lng) {
+  const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+
+  // ✅ Use cache if available
+  if (locationCache[key]) {
+    return locationCache[key];
+  }
+
+  const url =
+    `https://nominatim.openstreetmap.org/reverse` +
+    `?format=jsonv2&lat=${lat}&lon=${lng}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "FloodRiskMap/1.0"
+      }
+    });
+
+    const data = await res.json();
+
+    const address =
+      data.address?.road ||
+      data.address?.neighbourhood ||
+      data.address?.suburb ||
+      data.address?.city ||
+      "Unknown location";
+
+    locationCache[key] = address;
+    return address;
+
+  } catch (err) {
+    console.warn("Reverse geocode failed", err);
+    return "Unknown location";
+  }
+}
+
+
+
+
+
+
+
+
+function checkFloodsNearMe() {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      findNearbyFloods(lat, lng, 500);
+    },
+    err => {
+      alert("Location permission denied");
+    }
+  );
+}
+async function findNearbyFloods(lat, lng, radiusMeters) {
+  if (!geojsonLayer) {
+    alert("Flood data not loaded yet");
+    return;
+  }
+
+  const userLatLng = L.latLng(lat, lng);
+  const userPoint = map.latLngToLayerPoint(userLatLng);
+
+  const tasks = [];   // 👈 collect async tasks
+
+  geojsonLayer.eachLayer(layer => {
+    const props = layer.feature?.properties || {};
+
+    // 🟢 POINT FLOODS
+    if (layer.getLatLng) {
+      const center = layer.getLatLng();
+      const d = userLatLng.distanceTo(center);
+
+      if (d <= radiusMeters) {
+        tasks.push(
+          getLocationName(center.lat, center.lng).then(name => ({
+            location: name,
+            severity: props.Risk || "Unknown",
+            distance: Math.round(d)
+          }))
+        );
+      }
+    }
+
+    // 🔴 POLYGON FLOODS
+    else if (layer instanceof L.Polygon) {
+      const inside = layer._containsPoint(userPoint);
+
+      if (inside) {
+        const center = layer.getBounds().getCenter();
+        tasks.push(
+          getLocationName(center.lat, center.lng).then(name => ({
+            location: name,
+            severity: props.Risk || "Unknown",
+            distance: 0
+          }))
+        );
+      }
+    }
+  });
+
+  // ✅ WAIT for ALL reverse-geocode calls
+  const results = await Promise.all(tasks);
+
+  showNearbyFloodsPopup(results);
+}
+
+
+
+function showNearbyFloodsPopup(results) {
+
+  if (results.length === 0) {
+    alert("✅ No reported floods within 500 meters");
+    return;
+  }
+
+  const rows = results.map(r => `
+    <div style="
+      padding:10px;
+      border-bottom:1px solid #e5e7eb;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    ">
+      <div>
+        <b>${r.location}</b><br>
+        <span style="font-size:12px;color:#64748b;">
+          ${r.distance} m away
+        </span>
+      </div>
+      <span style="
+        padding:4px 10px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:700;
+        background:${
+          r.severity.toLowerCase() === "high" ? "#fecaca" :
+          r.severity.toLowerCase() === "medium" ? "#fde68a" :
+          "#bbf7d0"
+        };
+        color:#111827;
+      ">
+        ${r.severity}
+      </span>
+    </div>
+  `).join("");
+
+  const html = `
+    <div id="nearbyFloodModal" style="
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:10000;
+    ">
+      <div style="
+        width:420px;
+        max-width:90%;
+        background:white;
+        border-radius:16px;
+        overflow:hidden;
+        font-family:Inter;
+      ">
+        <div style="
+          background:#2563eb;
+          padding:16px;
+          color:white;
+        ">
+          <h2 style="margin:0;">📍 Floods Near You</h2>
+          <p style="margin:4px 0 0;font-size:13px;">
+            Within 500 meters
+          </p>
+        </div>
+
+        <div style="max-height:300px; overflow:auto;">
+          ${rows}
+        </div>
+
+        <button onclick="document.getElementById('nearbyFloodModal').remove()"
+          style="
+            width:100%;
+            padding:12px;
+            border:none;
+            background:#2563eb;
+            color:white;
+            font-weight:700;
+            cursor:pointer;
+          ">
+          Close
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", html);
+}
+
+
+
+
+
+
+
+
 function minutesSince(ts) {
   return (Date.now() - ts) / (1000 * 60);
 }
