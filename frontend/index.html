@@ -659,17 +659,16 @@ body {
 }
 
 .feature {
-  background: rgba(255, 255, 255, 0.28); /* transparency WITHOUT opacity */
+  background: rgba(255, 255, 255, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 18px;
   padding: 26px;
+  border-radius: 18px;
   color: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
 }
-
 
 
 .feature i {
@@ -693,8 +692,8 @@ body {
 
 .feature.active {
   background: linear-gradient(135deg, #2563eb, #1e40af);
-  box-shadow: 0 30px 70px rgba(37, 99, 235, 0.7);
-  transform: translateY(-6px) scale(1.05);
+  box-shadow: 0 25px 60px rgba(37, 99, 235, 0.6);
+  transform: translateY(-8px) scale(1.05);
 }
 
 
@@ -769,13 +768,13 @@ body {
   opacity: 1 !important;
 }
 
-.feature span,
+.feature span {
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+}
 
 .feature i {
-  color: #ffffff;
-  opacity: 1;
-  font-weight: 800;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
 }
 
 
@@ -805,9 +804,17 @@ body {
 <!-- HERO WITH VIDEO BACKGROUND -->
 <section class="hero-video">
 
+  <!-- HERO BACKGROUND VIDEO -->
+  <video class="hero-bg-video" autoplay muted loop playsinline>
+    <source src="https://www.tomorrow.io/wp-content/uploads/2025/10/mobile-stars.mp4" type="video/mp4">
+  </video>
+
+  <!-- HERO OVERLAY -->
+  <div class="hero-overlay"></div>
 
   <!-- Hero Content -->
   <div class="hero-video-content">
+
 
     <h1>
       Delhi Waterlogging<br>
