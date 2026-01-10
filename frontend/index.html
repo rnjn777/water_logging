@@ -5,6 +5,8 @@
 <title>Waterlogging Monitoring System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <style>
 * {
@@ -20,44 +22,6 @@ body {
   overflow-x: hidden;
   position: relative;
 }
-
-/* ANIMATED BACKGROUND */
-.bg-animation {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.water-drop {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.4), transparent);
-  border-radius: 50%;
-  animation: fall linear infinite;
-}
-
-@keyframes fall {
-  0% {
-    transform: translateY(-100px);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
-}
-
-.water-drop:nth-child(1) { left: 10%; animation-duration: 3s; animation-delay: 0s; }
-.water-drop:nth-child(2) { left: 25%; animation-duration: 4s; animation-delay: 1s; }
-.water-drop:nth-child(3) { left: 40%; animation-duration: 3.5s; animation-delay: 0.5s; }
-.water-drop:nth-child(4) { left: 55%; animation-duration: 4.5s; animation-delay: 1.5s; }
-.water-drop:nth-child(5) { left: 70%; animation-duration: 3.8s; animation-delay: 0.8s; }
-.water-drop:nth-child(6) { left: 85%; animation-duration: 4.2s; animation-delay: 2s; }
 
 /* NAVBAR */
 .navbar {
@@ -349,13 +313,17 @@ body {
 
 /* STATS SECTION */
 .stats-section {
-  margin-top: 80px;
-  padding: 60px 40px;
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 80px 40px;
+
+  background: rgba(64, 132, 192, 0.3);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border-top: none;
+  border-bottom: none;
 }
+
 
 .stats-container {
   max-width: 1000px;
@@ -397,7 +365,8 @@ body {
   text-align: center;
   color: #94a3b8;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  overflow: hidden;
 }
 
 .footer-content {
@@ -554,13 +523,16 @@ body {
 .hero-overlay {
   position: absolute;
   inset: 0;
+  background: rgba(0, 0, 0, 0.25); /* much lighter */
   background: linear-gradient(
-    to bottom,
-    rgba(2, 6, 23, 0.7),
-    rgba(2, 6, 23, 0.85)
+    to top,
+    rgba(50, 51, 52, 0.9) 0%,   /* Strong blue at the very bottom */
+    rgba(0, 0, 0, 0.5) 10%,   /* Starts fading quickly */
+    rgba(92, 179, 255, 0) 25%      /* Completely transparent by 25% up */
   );
   z-index: 1;
 }
+
 
 .hero-video-content {
   position: relative;
@@ -603,21 +575,188 @@ body {
   }
 }
 
+/* =========================
+   FEATURE TABS SECTION
+========================= */
+/* SVG lines */
+.connector-svg {
+  width: 100%;
+  height: 160px;
+  
+  /* CHANGED: Removed bottom margin so lines touch the boxes */
+  margin-bottom: -5px; 
+  
+  /* Optional: explicit z-index to make sure lines don't get hidden */
+  position: relative;
+  z-index: 10;
+}
+
+.connector-line {
+  fill: none;
+  stroke: rgba(255,255,255,0.75);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round; 
+}
+/* Connector line animation */
+
+.features-section {
+  padding: 100px 40px;
+  
+  /* 🖼️ REPLACE THE URL BELOW WITH YOUR IMAGE LINK */
+  background: 
+    linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 26, 63, 0)),
+    linear-gradient(to top,
+    rgba(64, 132, 192, 0.5),rgb(0, 0, 0)), /* Dark overlay */
+    url('https://ibb.co/spbqJNhc'); 
+    
+  background-size: cover;
+  background-position: center;
+
+  
+  text-align: center;
+  position: relative;
+  overflow: hidden; 
+}
+
+.features-section h2 {
+  font-size: 38px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 50px;
+}
+
+.features-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.feature {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 26px;
+  border-radius: 18px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+}
+
+.feature i {
+  font-size: 28px;
+  margin-bottom: 10px;
+  display: block;
+  color: #e0f2fe;
+}
+
+.feature span {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.feature:hover {
+  transform: translateY(-6px);
+  background: rgba(92,179,255,0.9);
+}
+
+.feature.active {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  box-shadow: 0 20px 45px rgba(37,99,235,0.5);
+  transform: translateY(-8px) scale(1.05);
+}
+
+.feature-description {
+  max-width: 900px;
+  margin: 50px auto 0;
+  font-size: 18px;
+  line-height: 1.7;
+  color: #f8fafc;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.feature-description.fade {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+@media (max-width: 768px) {
+  .features-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.feature-card p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Merged this into .feature-card to fix the error */
+.feature-card {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: transform 0.3s ease;
+}
+
+.features-section h2 {
+  /* 1. BIGGER & MORE VISIBLE */
+  font-size: 64px;          
+  font-weight: 900;
+  color: #ffffff;
+  
+  /* 2. BETTER CONTRAST AGAINST IMAGE */
+  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.9); 
+  letter-spacing: -1.5px;
+
+  /* 3. PUSHES THE LINES LOWER */
+  margin-bottom: 80px;      
+}
+
+
+.feature-card p {
+  color: rgba(255, 255, 255, 0.85);
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+}
+
+
+/* Slight inner glow for premium feel */
+.features-section::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(255,255,255,0.08), transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.06), transparent 45%);
+  animation: rippleMove 18s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes rippleMove {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-60px, -40px); }
+  100% { transform: translate(0, 0); }
+}
+.features-section > * {
+  position: relative;
+  z-index: 1;
+}
 
 </style>
 </head>
 
 <body>
-
-<!-- ANIMATED BACKGROUND -->
-<div class="bg-animation">
-  <div class="water-drop"></div>
-  <div class="water-drop"></div>
-  <div class="water-drop"></div>
-  <div class="water-drop"></div>
-  <div class="water-drop"></div>
-  <div class="water-drop"></div>
-</div>
 
 <!-- NAVBAR -->
 <nav class="navbar">
@@ -643,7 +782,7 @@ body {
   <!-- Background Video -->
   <video class="hero-bg-video" autoplay muted loop playsinline>
     <!-- You can replace this with your own flood / rain video -->
-    <source src="https://drive.google.com/file/d/1lV8cCNZQloKuHryLDH8aXLwRSgB-MCcq/view?usp=sharing" type="video/mp4">
+    <source src="https://res.cloudinary.com/dhhzi7ias/video/upload/v1767983735/bluevideo_zullok.mp4" type="video/mp4">
   </video>
 
   <!-- Dark Overlay -->
@@ -685,45 +824,49 @@ body {
   </div>
 </section>
 
-    <!-- FEATURES -->
-    <div class="features" id="features">
-      <div class="feature-card">
-        <div class="feature-icon">🗺️</div>
-        <div class="feature-title">Interactive Maps</div>
-        <div class="feature-desc">Visualize flood hotspots with dynamic, real-time mapping</div>
-      </div>
-     
-      <div class="feature-card">
-        <div class="feature-icon">⚠️</div>
-        <div class="feature-title">Risk Analysis</div>
-        <div class="feature-desc">AI-powered severity assessment and predictions</div>
-      </div>
-     
-      <div class="feature-card">
-        <div class="feature-icon">📊</div>
-        <div class="feature-title">Live Dashboard</div>
-        <div class="feature-desc">Monitor critical areas and track incidents instantly</div>
-      </div>
-    </div>
-    <!-- LOGIN BUTTONS -->
-    <div class="login-section">
-      <button class="login-btn user-login" onclick="openUserLogin()">
-        <span class="btn-icon">👤</span>
-        <span>User Login</span>
-      </button>
-
-      <button class="login-btn admin-login" onclick="openAdminLogin()">
-        <span class="btn-icon">🔐</span>
-        <span>Admin Login</span>
-      </button>
-
-      <button class="login-btn guest-login" onclick="window.location.href='guest_map.html'">
-        <span class="btn-icon">👥</span>
-        <span>Guest Mode</span>
-      </button>
-
-    </div>
+<!-- FEATURES INTERACTIVE SECTION -->
+<section class="features-section" id="features">
+  <h2>Core Platform Features</h2>
+  <!-- CONNECTOR BRANCHES -->
+  <svg class="connector-svg" viewBox="0 0 1000 160" preserveAspectRatio="none">
     
+    <path d="M500 0 L500 20 Q500 40 480 40 L145 40 Q125 40 125 60 L125 160" 
+          class="connector-line"/>
+    
+    <path d="M500 0 L500 20 Q500 40 480 40 L395 40 Q375 40 375 60 L375 160" 
+          class="connector-line"/>
+    
+    <path d="M500 0 L500 20 Q500 40 520 40 L605 40 Q625 40 625 60 L625 160" 
+          class="connector-line"/>
+    
+    <path d="M500 0 L500 20 Q500 40 520 40 L855 40 Q875 40 875 60 L875 160" 
+          class="connector-line"/>
+          
+  </svg>
+  <div class="features-tabs">
+    <button class="feature active" onclick="showFeature(0)">
+      <i class="fa-solid fa-user-pen"></i>
+      <span>User Reporting</span>
+    </button>
+
+    <button class="feature" onclick="showFeature(1)">
+      <i class="fa-solid fa-map-location-dot"></i>
+      <span>Flood Heatmap</span>
+    </button>
+
+    <button class="feature" onclick="showFeature(2)">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>Risk Analysis</span>
+    </button>
+
+    <button class="feature" onclick="showFeature(3)">
+      <i class="fa-solid fa-certificate"></i>
+      <span>Verified Data</span>
+    </button>
+  </div>
+
+  <div class="feature-description" id="featureDesc">
+    Citizens can report waterlogging incidents with images and live GPS location.
   </div>
 </section>
 
@@ -816,7 +959,6 @@ body {
 
 
 <script>
-
 const API_BASE_URL = "https://water-logging.onrender.com";
 /* ---------- POPUP CONTROL ---------- */
 function openUserLogin() {
@@ -931,6 +1073,32 @@ async function loginAdmin() {
   window.location.href = "admin.html";
 }
 
+</script>
+<script>
+const descriptions = [
+  "Citizens can actively report waterlogging by uploading photos, live GPS location, and brief descriptions. This crowdsourced intelligence enables faster emergency response.",
+
+  "Dynamic flood heatmaps visualize live and historical waterlogging data to identify critical hotspots and support traffic and disaster planning.",
+
+  "AI-driven risk analysis predicts flood severity by combining rainfall forecasts, drainage capacity, and past flood patterns.",
+
+  "All reported data is verified using trusted sensors, meteorological sources, and municipal validation for decision-grade accuracy."
+];
+
+function showFeature(index) {
+  const desc = document.getElementById("featureDesc");
+  const features = document.querySelectorAll(".feature");
+
+  desc.classList.add("fade");
+
+  setTimeout(() => {
+    desc.textContent = descriptions[index];
+    desc.classList.remove("fade");
+  }, 200);
+
+  features.forEach(f => f.classList.remove("active"));
+  features[index].classList.add("active");
+}
 </script>
 
 </body>

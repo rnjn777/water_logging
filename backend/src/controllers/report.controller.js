@@ -176,14 +176,15 @@
           if (detRes && detRes.ok) {
             const detData = await detRes.json();
             console.log('🔎 Detector response data:', JSON.stringify(detData, null, 2));
-          // ✅ Extract confidence score safely
-if (typeof detData.confidence === "number") {
+            // ✅ EXTRACT CONFIDENCE SCORE
+if (typeof detData.confidence === 'number') {
   confidenceScore = detData.confidence;
-  console.log(`📈 Detector confidence score: ${confidenceScore}`);
+  console.log(`📈 Reprocess confidence score: ${confidenceScore}`);
 } else {
   confidenceScore = null;
-  console.log("⚠️ Detector confidence missing or invalid");
+  console.log('⚠️ No confidence score from detector');
 }
+
 
 
             // Handle detector error in response body
@@ -452,6 +453,8 @@ if (typeof detData.confidence === "number") {
       const DETECTOR_URL = process.env.DETECTOR_URL || 'https://water-logging-detector.onrender.com/detect_url';
       let isWaterlogged = null;
       let processedImageUrl = null;
+      let confidenceScore = null; // 👈 ADD THIS
+
 
       try {
 const detectorImageUrl = report.image.replace(
@@ -469,6 +472,15 @@ const detRes = await fetch(DETECTOR_URL, {
         if (detRes && detRes.ok) {
           const detData = await detRes.json();
           console.log('🔁 Reprocess detector response for report', reportId, detData);
+          // ✅ EXTRACT CONFIDENCE SCORE
+if (typeof detData.confidence === 'number') {
+  confidenceScore = detData.confidence;
+  console.log(`📈 Reprocess confidence score: ${confidenceScore}`);
+} else {
+  confidenceScore = null;
+  console.log('⚠️ No confidence score from detector');
+}
+
 
           if (detData.waterlogged === true) isWaterlogged = true;
           else if (detData.waterlogged === false) isWaterlogged = false;
@@ -498,16 +510,17 @@ const detRes = await fetch(DETECTOR_URL, {
       } catch (err) {
         console.error('❌ Reprocess detector call failed:', err);
       }
+const update = await prisma.report.update({
+  where: { id: reportId },
+  data: {
+    processed_image: processedImageUrl,
+    is_waterlogged: isWaterlogged,
+    confidence_score: confidenceScore, // 👈 ADD THIS
+    is_rejected: isWaterlogged === false ? true : undefined,
+    rejected_at: isWaterlogged === false ? new Date() : undefined
+  }
+});
 
-      const update = await prisma.report.update({
-        where: { id: reportId },
-        data: {
-          processed_image: processedImageUrl,
-          is_waterlogged: isWaterlogged,
-          is_rejected: isWaterlogged === false ? true : undefined,
-          rejected_at: isWaterlogged === false ? new Date() : undefined
-        }
-      });
 
       res.json({ message: 'Reprocessed', report: update });
     } catch (err) {
@@ -637,8 +650,12 @@ const detRes = await fetch(DETECTOR_URL, {
   export const deleteRejectedReports = async (req, res) => {
     try {
       const result = await prisma.report.deleteMany({
-        where: { is_approved: false }
-      });
+  where: {
+    is_approved: false
+  }
+});
+
+
       res.json({ message: `Deleted ${result.count} rejected reports` });
     } catch (err) {
       console.error("DELETE REJECTED ERROR:", err);
@@ -646,32 +663,50 @@ const detRes = await fetch(DETECTOR_URL, {
     }
   };
 
-  /**
-   * DELETE /api/reports/clear-all
-   * Admin clears all reports and resets user counters
-   */
-  export const clearAllReports = async (req, res) => {
-    try {
-      console.log("🗑️ Admin clearing all reports...");
 
-      // Reset all user counters
-      await prisma.user.updateMany({
+export const clearAllReports = async (req, res) => {
+  try {
+    console.log("🧹 Clearing non-approved reports only...");
+
+    // 1️⃣ Delete only pending + rejected reports
+    const deleteResult = await prisma.report.deleteMany({
+      where: {
+        is_approved: false
+      }
+    });
+
+    // 2️⃣ Recalculate user stats ONLY from remaining (approved) reports
+    const users = await prisma.user.findMany({
+      include: { reports: true }
+    });
+
+    for (const user of users) {
+      const approvedReports = user.reports.filter(r => r.is_approved).length;
+      const totalReports = user.reports.length;
+
+      const trustScore =
+        totalReports === 0
+          ? 0
+          : Math.min(100, Math.round((approvedReports / totalReports) * 100));
+
+      await prisma.user.update({
+        where: { id: user.id },
         data: {
-          total_reports: 0,
-          approved_reports: 0,
-          trust_score: 0
+          total_reports: totalReports,
+          approved_reports: approvedReports,
+          trust_score: trustScore
         }
       });
-
-      // Delete all reports
-      const deleteResult = await prisma.report.deleteMany({});
-
-      console.log(`✅ Cleared ${deleteResult.count} reports and reset all user counters`);
-      res.json({
-        message: `Successfully cleared ${deleteResult.count} reports and reset all user trust scores to 0%`
-      });
-    } catch (err) {
-      console.error("CLEAR ALL REPORTS ERROR:", err);
-      res.status(500).json({ message: "Failed to clear reports" });
     }
-  };
+
+    console.log(`✅ Deleted ${deleteResult.count} non-approved reports`);
+
+    res.json({
+      message: `Cleared ${deleteResult.count} pending/rejected reports. Approved reports preserved.`
+    });
+
+  } catch (err) {
+    console.error("CLEAR NON-APPROVED ERROR:", err);
+    res.status(500).json({ message: "Failed to clear reports" });
+  }
+};

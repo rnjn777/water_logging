@@ -34,6 +34,7 @@ model Report {
   image         String?
   processed_image String?
   is_waterlogged Boolean?
+  confidence_score Float?
   user_id       Int?
   is_approved   Boolean   @default(false)
   is_rejected   Boolean   @default(false)
