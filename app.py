@@ -9,25 +9,6 @@ from io import BytesIO
 
 app = FastAPI(title="Waterlogging Detector API")
 
-# Helpful validation error handler to log raw bodies and return clearer messages (helps diagnose 422s)
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    raw_body = None
-    try:
-        raw_body = (await request.body()).decode('utf-8', errors='replace')
-    except Exception:
-        raw_body = None
-    print("❌ [VALIDATION] RequestValidationError:", exc.errors())
-    print("❌ [VALIDATION] RAW BODY (truncated):", raw_body[:1000] if raw_body else raw_body)
-    return JSONResponse(status_code=422, content={
-        "detail": "Request validation failed. See 'errors' for details.",
-        "errors": exc.errors(),
-        "raw_body_preview": raw_body[:1000] if raw_body else None
-    })
-
 print("\n" + "="*60)
 print("🚀 WATERLOGGING DETECTOR API STARTING UP")
 print("="*60)
@@ -60,63 +41,10 @@ def _annotate_image_with_boxes(image, boxes):
 
 
 @app.post("/detect")
-async def detect_waterlogging(request: Request, file: UploadFile = File(None)):
-    """Accepts either:
-    - multipart/form-data with a field `file` (UploadFile)
-    - application/json with `image_url` or `image` (base64 data URI or raw base64)
-
-    This prevents 422 errors when callers send JSON to `/detect` by mistake.
-    """
+async def detect_waterlogging(file: UploadFile = File(...)):
     try:
-        # If a file was uploaded via multipart/form-data, use it
-        if file is not None:
-            print(f"🔍 [/detect] Received multipart file: {file.filename}")
-            contents = await file.read()
-            image = Image.open(io.BytesIO(contents)).convert("RGB")
-        else:
-            # No file object — inspect the request body and content type
-            content_type = (request.headers.get('content-type') or '').lower()
-            print(f"🔍 [/detect] No UploadFile. Content-Type: {content_type}")
-
-            if 'application/json' in content_type:
-                payload = await request.json()
-                # support image_url (preferred)
-                image_url = payload.get('image_url') if isinstance(payload, dict) else None
-                image_b64 = payload.get('image') if isinstance(payload, dict) else None
-
-                if image_url:
-                    print(f"🔍 [/detect] Got image_url in JSON: {image_url}")
-                    # delegate to detect_from_url logic (reuse existing code path)
-                    return await detect_from_url({'image_url': image_url})
-
-                if image_b64:
-                    print("🔍 [/detect] Got base64 image in JSON; decoding...")
-                    b64 = image_b64
-                    if b64.startswith('data:image'):
-                        b64 = b64.split(',', 1)[1]
-                    contents = base64.b64decode(b64)
-                    image = Image.open(io.BytesIO(contents)).convert("RGB")
-                else:
-                    return {"error": "JSON body must include 'image_url' or 'image' (base64)."}
-
-            elif 'multipart/form-data' in content_type:
-                # If client sent form data but without a file field, try to parse form and look for image_url
-                form = await request.form()
-                if 'image_url' in form:
-                    return await detect_from_url({'image_url': form.get('image_url')})
-                return {"error": "multipart/form-data received but no 'file' field present."}
-
-            else:
-                # Try to parse raw body as JSON as a best-effort (some clients omit headers)
-                try:
-                    payload = await request.json()
-                    if isinstance(payload, dict) and 'image_url' in payload:
-                        return await detect_from_url(payload)
-                except Exception:
-                    pass
-                return {"error": "Unsupported request format. Send multipart form with 'file', or JSON with 'image_url' or 'image'."}
-
-        # Normalize and resize image similar to previous behavior
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents)).convert("RGB")
         image = image.resize((640, 640))
 
         # YOLO inference
@@ -168,18 +96,18 @@ async def detect_waterlogging(request: Request, file: UploadFile = File(None)):
             "waterlogged": waterlogged,
             "confidence": confidence,
             "detections": detections,
-            "image_filename": getattr(file, 'filename', None),
+            "image_filename": file.filename,
             "processed_image": processed_image
         }
 
     except Exception as e:
-        print(f"❌ [/detect] Exception while processing: {e}")
         return {
             "error": str(e),
             "waterlogged": False,
             "detections": [],
             "processed_image": None
         }
+
 
 @app.post("/detect_url")
 async def detect_from_url(payload: dict):

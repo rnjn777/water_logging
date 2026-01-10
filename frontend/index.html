@@ -579,6 +579,41 @@ body {
    FEATURE TABS SECTION
 ========================= */
 /* SVG lines */
+/* ===== FEATURES VIDEO BACKGROUND (CORRECT WAY) ===== */
+
+.features-wrapper {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Video is TRUE background now */
+.features-bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Dark readability overlay */
+.features-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(2, 6, 23, 0.55),
+    rgba(2, 6, 23, 0.35),
+    rgba(2, 6, 23, 0.55)
+  );
+  z-index: 1;
+   pointer-events: none;   /* 🔥 THIS FIXES CLICK ISSUE */
+}
+
+
+/* Actual feature content */
+
 .connector-svg {
   width: 100%;
   height: 160px;
@@ -601,22 +636,11 @@ body {
 /* Connector line animation */
 
 .features-section {
-  padding: 100px 40px;
-  
-  /* 🖼️ REPLACE THE URL BELOW WITH YOUR IMAGE LINK */
-  background: 
-    linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 26, 63, 0)),
-    linear-gradient(to top,
-    rgba(64, 132, 192, 0.5),rgb(0, 0, 0)), /* Dark overlay */
-    url('https://ibb.co/spbqJNhc'); 
-    
-  background-size: cover;
-  background-position: center;
-
-  
-  text-align: center;
   position: relative;
-  overflow: hidden; 
+  z-index: 3;
+  min-height: 100vh;
+  padding: 100px 40px;
+  text-align: center;
 }
 
 .features-section h2 {
@@ -635,27 +659,32 @@ body {
 }
 
 .feature {
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.3);
-  padding: 26px;
+  background: rgba(255, 255, 255, 0.28); /* transparency WITHOUT opacity */
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 18px;
-  color: white;
+  padding: 26px;
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
 }
+
+
 
 .feature i {
   font-size: 28px;
   margin-bottom: 10px;
   display: block;
-  color: #e0f2fe;
+  color: #ffffff;
 }
 
 .feature span {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 15px;
+  color: #ffffff;
 }
+
 
 .feature:hover {
   transform: translateY(-6px);
@@ -664,9 +693,10 @@ body {
 
 .feature.active {
   background: linear-gradient(135deg, #2563eb, #1e40af);
-  box-shadow: 0 20px 45px rgba(37,99,235,0.5);
-  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 30px 70px rgba(37, 99, 235, 0.7);
+  transform: translateY(-6px) scale(1.05);
 }
+
 
 .feature-description {
   max-width: 900px;
@@ -701,18 +731,14 @@ body {
 }
 
 .features-section h2 {
-  /* 1. BIGGER & MORE VISIBLE */
-  font-size: 64px;          
+  font-size: 64px;
   font-weight: 900;
   color: #ffffff;
-  
-  /* 2. BETTER CONTRAST AGAINST IMAGE */
-  text-shadow: 0 5px 15px rgba(0, 0, 0, 0.9); 
-  letter-spacing: -1.5px;
-
-  /* 3. PUSHES THE LINES LOWER */
-  margin-bottom: 80px;      
+  text-shadow:
+    0 6px 20px rgba(0,0,0,0.95),
+    0 0 40px rgba(255,255,255,0.15);
 }
+
 
 
 .feature-card p {
@@ -730,28 +756,28 @@ body {
 }
 
 
-/* Slight inner glow for premium feel */
-.features-section::after {
-  content: "";
-  position: absolute;
-  inset: -40%;
-  background:
-    radial-gradient(circle at 30% 40%, rgba(255,255,255,0.08), transparent 40%),
-    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.06), transparent 45%);
-  animation: rippleMove 18s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 0;
-}
 
 @keyframes rippleMove {
   0%   { transform: translate(0, 0); }
   50%  { transform: translate(-60px, -40px); }
   100% { transform: translate(0, 0); }
 }
-.features-section > * {
-  position: relative;
-  z-index: 1;
+/* ===== FINAL VISIBILITY OVERRIDE (REQUIRED) ===== */
+.feature,
+.feature * {
+  color: #ffffff !important;
+  opacity: 1 !important;
 }
+
+.feature span,
+
+.feature i {
+  color: #ffffff;
+  opacity: 1;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+}
+
 
 </style>
 </head>
@@ -779,14 +805,6 @@ body {
 <!-- HERO WITH VIDEO BACKGROUND -->
 <section class="hero-video">
 
-  <!-- Background Video -->
-  <video class="hero-bg-video" autoplay muted loop playsinline>
-    <!-- You can replace this with your own flood / rain video -->
-    <source src="https://res.cloudinary.com/dhhzi7ias/video/upload/v1767983735/bluevideo_zullok.mp4" type="video/mp4">
-  </video>
-
-  <!-- Dark Overlay -->
-  <div class="hero-overlay"></div>
 
   <!-- Hero Content -->
   <div class="hero-video-content">
@@ -825,7 +843,24 @@ body {
 </section>
 
 <!-- FEATURES INTERACTIVE SECTION -->
-<section class="features-section" id="features">
+<section class="features-wrapper" id="features">
+  <video class="features-bg-video" autoplay muted loop playsinline>
+    <source src="https://www.tomorrow.io/wp-content/uploads/2025/10/mobile-stars.mp4" type="video/mp4">
+  </video>
+
+  <div class="features-overlay"></div>
+
+  <div class="features-section">
+
+
+  <!-- Background Video -->
+  <video class="features-bg-video" autoplay muted loop playsinline>
+      <source src="https://www.tomorrow.io/wp-content/uploads/2025/10/mobile-stars.mp4" type="video/mp4">
+  </video>
+
+  <!-- Dark Overlay -->
+  <div class="features-overlay"></div>
+
   <h2>Core Platform Features</h2>
   <!-- CONNECTOR BRANCHES -->
   <svg class="connector-svg" viewBox="0 0 1000 160" preserveAspectRatio="none">
