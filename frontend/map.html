@@ -1102,8 +1102,7 @@ select:focus {
     <label>🔥 Waterlogging Heatmap:</label>
     <input type="checkbox" id="heatToggle" onchange="toggleHeatmap(this.checked)" checked />
   </div>
-<button id="reportBtn" class="report-btn" onclick="enableReportMode()">➕ Report Waterlogging</button>
-  <button id="reportMyLocationBtn" class="report-btn" onclick="reportCurrentLocation()" style="background: linear-gradient(135deg, #10b981, #059669);">📍 Report My Location</button>
+ <button id="reportMyLocationBtn" class="report-btn" onclick="reportCurrentLocation()" style="background: linear-gradient(135deg, #10b981, #059669);">📍 Report My Location</button>
   
 </div>
 
@@ -1669,15 +1668,19 @@ async function getElevation(lat, lng) {
 
 // 🧮 Flood risk formula
 function calculateFloodRisk(rainfall, elevation) {
-  let elevationFactor;
+  // Normalize rainfall (0–50 mm)
+  const rainScore = Math.min(rainfall / 50, 1);
 
-  if (elevation < 10) elevationFactor = 100;
-  else if (elevation < 30) elevationFactor = 60;
-  else elevationFactor = 20;
+  // Normalize elevation (0–300 m, lower elevation = higher risk)
+  const elevationScore = 1 - Math.min(elevation / 300, 1);
 
-  let score = (rainfall * 0.6) + (elevationFactor * 0.4);
-  return Math.min(100, Math.round(score));
+  // Weighted combination
+  const score =
+    (rainScore * 0.6 + elevationScore * 0.4) * 100;
+
+  return Math.round(score);
 }
+
 
 function enableReportMode() {
   // Toggle report mode on/off
