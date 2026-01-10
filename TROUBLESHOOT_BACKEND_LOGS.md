@@ -143,3 +143,65 @@ ls node_modules 2>/dev/null && echo "✅ node_modules found" || echo "❌ node_m
 echo "Starting server..."
 npm run dev
 ```
+
+---
+
+## Python Detector Deployment & Build Errors (Render)
+
+If you're deploying the FastAPI detector and see errors like:
+
+  KeyError: '__version__'
+  Getting requirements to build wheel: finished with status 'error'
+
+This usually means a Python package listed in `requirements.txt` is failing to build from source or its packaging script is trying to read a `__version__` variable that isn't available during build.
+
+Quick fixes to try:
+
+1. Upgrade pip, setuptools and wheel before installing requirements (add to build hook or run manually):
+
+```bash
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -r requirements.txt
+```
+
+2. Remove pins that can cause packaging conflicts (we removed `pip==...` from `requirements.txt` in favor of letting the build environment manage pip/setuptools). If a specific package fails (e.g., `ultralytics` or `torch`) try using a different pinned version that ships wheels for your platform.
+
+3. If `torch` is required, prefer using PyTorch's recommended install command for your platform (see https://pytorch.org/get-started/locally/) and avoid relying on pip to build from source on constrained environments.
+
+4. If the build log shows `KeyError: '__version__'` coming from a particular package, try pinning that dependency to a stable release or installing via a wheel / binary distribution rather than from source.
+
+5. Confirm Python runtime version matches `runtime.txt` (we recommend Python 3.10 for this project):
+
+- `runtime.txt` currently contains `python-3.10.13`. Ensure your host (Render) uses this runtime.
+
+If you want, I can help inspect the full build logs from Render and suggest the exact package version fix.
+
+---
+
+## FastAPI 422 (Unprocessable Entity) when calling /detect
+
+If your frontend or tests get `422` calling `/detect`, it means the request reached FastAPI but didn't match the expected schema (most common causes):
+
+- Frontend sent JSON but `/detect` expected `multipart/form-data` with a `file` field.
+- Field names mismatch (server expects `file` but client sends `image` or vice-versa).
+- Required fields missing (e.g., `image_url` in JSON body for `/detect_url`).
+
+What we changed:
+
+- `/detect` now accepts:
+  - `multipart/form-data` with `file` (UploadFile)
+  - `application/json` with `image_url` (preferred) or `image` (base64 string or data URI)
+- Added `/detect_url` for URL-based requests (unchanged), and clearer validation error logging (raw body preview) to help diagnose 422s.
+
+How to fix client code (frontend):
+
+- If you have a file object: use `FormData()` and `formData.append('file', file)` and do NOT set `Content-Type` manually.
+- If you prefer sending a URL: send JSON `{ "image_url": "https://..." }` to `/detect` or `/detect_url`.
+- If you want to send base64: send JSON `{ "image": "data:image/png;base64,..." }`.
+
+Quick debugging tip:
+
+- Use the `/debug/origin` endpoint in the backend to confirm request origin for CORS issues.
+- Add a temporary log in the frontend to print request body and headers before sending.
+
+If you want, I can also add a tiny client-side snippet showing the correct fetch calls for each method (multipart FormData, JSON URL, JSON base64).
