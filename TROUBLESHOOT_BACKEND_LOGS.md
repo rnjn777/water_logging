@@ -143,3 +143,43 @@ ls node_modules 2>/dev/null && echo "✅ node_modules found" || echo "❌ node_m
 echo "Starting server..."
 npm run dev
 ```
+
+---
+
+## FastAPI 422 (Unprocessable Entity) when calling /detect
+
+If your frontend or tests get `422` calling `/detect`, it means the request reached the endpoint but didn't match the expected schema. The most common causes are:
+
+- Frontend sent JSON but `/detect` expected `multipart/form-data` with a `file` field.
+- Field name mismatch (server expects `file` but client sends `image` or `img`).
+- Required fields missing (e.g., `image_url` for `/detect_url`).
+
+What we changed to prevent this:
+
+- `/detect` now accepts:
+  - `multipart/form-data` with `file` (UploadFile)
+  - `application/json` with `image_url` (preferred) or `image` (base64 string or data URI)
+- A validation error handler logs a preview of the raw request body for easy diagnosis.
+
+Quick fixes for the frontend:
+
+- File upload (multipart):
+  - const formData = new FormData();
+  - formData.append('file', selectedFile);
+  - fetch('/detect', { method: 'POST', body: formData });
+  - Do NOT set the Content-Type header manually when using FormData.
+
+- JSON (URL):
+  - fetch('/detect', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({image_url: 'https://...'}) });
+
+- JSON (base64 image):
+  - fetch('/detect', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({image: 'data:image/png;base64,...'}) });
+
+Debugging tips:
+
+- Add logs in the frontend to print the request body and headers before sending.
+- Use curl to reproduce and inspect responses:
+  - curl -i -X POST "https://YOUR-DETECTOR/detect" -F "file=@/path/to/image.jpg"
+  - curl -i -X POST "https://YOUR-DETECTOR/detect" -H "Content-Type: application/json" -d '{"image_url":"https://..."}'
+
+If you'd like, I can add example client snippets to the frontend or run the curl checks against your deployed detector if you share its URL.
