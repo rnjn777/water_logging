@@ -613,12 +613,6 @@ body {
 
 
 /* Actual feature content */
-.features-section {
-  position: relative;
-  z-index: 3;
-  padding: 100px 40px;
-  text-align: center;
-}
 
 .connector-svg {
   width: 100%;
@@ -642,13 +636,12 @@ body {
 /* Connector line animation */
 
 .features-section {
-    min-height: 100vh;
+  position: relative;
+  z-index: 3;
+  min-height: 100vh;
   padding: 100px 40px;
   text-align: center;
-  position: relative;
-  overflow: hidden;
 }
-
 
 .features-section h2 {
   font-size: 38px;
@@ -666,16 +659,17 @@ body {
 }
 
 .feature {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.28); /* transparency WITHOUT opacity */
   border: 1px solid rgba(255, 255, 255, 0.45);
-  padding: 26px;
   border-radius: 18px;
+  padding: 26px;
   color: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.45);
 }
+
 
 
 .feature i {
@@ -699,8 +693,8 @@ body {
 
 .feature.active {
   background: linear-gradient(135deg, #2563eb, #1e40af);
-  box-shadow: 0 25px 60px rgba(37, 99, 235, 0.6);
-  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 30px 70px rgba(37, 99, 235, 0.7);
+  transform: translateY(-6px) scale(1.05);
 }
 
 
@@ -768,6 +762,21 @@ body {
   50%  { transform: translate(-60px, -40px); }
   100% { transform: translate(0, 0); }
 }
+/* ===== FINAL VISIBILITY OVERRIDE (REQUIRED) ===== */
+.feature,
+.feature * {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.feature span,
+
+.feature i {
+  color: #ffffff;
+  opacity: 1;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+}
 
 
 </style>
@@ -796,14 +805,6 @@ body {
 <!-- HERO WITH VIDEO BACKGROUND -->
 <section class="hero-video">
 
-  <!-- Background Video -->
-  <video class="hero-bg-video" autoplay muted loop playsinline>
-    <!-- You can replace this with your own flood / rain video -->
-    <source src="https://res.cloudinary.com/dhhzi7ias/video/upload/v1767983735/bluevideo_zullok.mp4" type="video/mp4">
-  </video>
-
-  <!-- Dark Overlay -->
-  <div class="hero-overlay"></div>
 
   <!-- Hero Content -->
   <div class="hero-video-content">
