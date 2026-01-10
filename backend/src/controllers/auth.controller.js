@@ -1,6 +1,8 @@
 import prisma from "../db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import fetch from "node-fetch";
+
 
 /**
  * POST /api/auth/login

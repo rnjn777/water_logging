@@ -1,5 +1,6 @@
   import prisma from "../db.js";
   import cloudinary from "../config/cloudinary.js";
+import fetch from "node-fetch";
 
   /**
    * POST /api/reports/test-detector
