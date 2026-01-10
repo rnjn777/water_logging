@@ -20,12 +20,12 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
-  "https://water-logging-pink.vercel.app/"
+  "https://water-logging-pink.vercel.app"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // allow non-browser requests (Postman, curl)
+    // Allow non-browser requests (Postman, curl)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
@@ -33,15 +33,18 @@ app.use(cors({
     }
 
     console.log("❌ Blocked by CORS:", origin);
-    return callback(new Error("Not allowed by CORS"));
+
+    // ❗ DO NOT throw error — just deny quietly
+    return callback(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// IMPORTANT: handle preflight requests
+// Preflight handling (IMPORTANT)
 app.options("*", cors());
+
 
 // Log all requests for debugging
 app.use((req, res, next) => {
